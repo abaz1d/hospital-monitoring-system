@@ -200,7 +200,7 @@ export const useDashboard = () => {
     chart: {
       type: 'line',
       backgroundColor: 'transparent',
-      height: '100%'
+      height: '600px'
     },
     title: null,
     credits: { enabled: false },

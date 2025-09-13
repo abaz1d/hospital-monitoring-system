@@ -54,7 +54,7 @@
             <div class="mb-6">
               <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Voltase Listrik</h3>
               <ClientOnly>
-                <highcharts :options="gaugeOptions.voltase" :style="{ height: '200px', width: '100%' }" />
+                <highcharts :options="gaugeOptions.voltase" :style="{ height: '150px', width: '100%' }" />
               </ClientOnly>
             </div>
 
@@ -62,7 +62,7 @@
             <div class="mb-6">
               <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Debit Air</h3>
               <ClientOnly>
-                <highcharts :options="gaugeOptions.debitAir" :style="{ height: '200px', width: '100%' }" />
+                <highcharts :options="gaugeOptions.debitAir" :style="{ height: '150px', width: '100%' }" />
               </ClientOnly>
             </div>
 
@@ -70,7 +70,7 @@
             <div class="">
               <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Jumlah Pasien</h3>
               <ClientOnly>
-                <highcharts :options="gaugeOptions.jumlahPasien" :style="{ height: '200px', width: '100%' }" />
+                <highcharts :options="gaugeOptions.jumlahPasien" :style="{ height: '150px', width: '100%' }" />
               </ClientOnly>
             </div>
           </UCard>
@@ -83,7 +83,7 @@
               <h2 class="text-lg font-semibold text-gray-900 sm:text-xl dark:text-white">Grafik</h2>
             </template>
 
-            <div lass="h-[400px] sm:h-[500px] lg:h-[600px]">
+            <div lass="h-[400px] sm:h-[500px] lg:h-[700px]">
               <ClientOnly>
                 <highcharts :options="lineChartOptions" />
               </ClientOnly>
