@@ -1,3 +1,3 @@
 <template>
-  <div>ini halaman index</div>
+  <div class="bg-red-200">ini halaman index</div>
 </template>
