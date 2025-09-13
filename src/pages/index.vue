@@ -45,20 +45,22 @@
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <!-- Left Side - Parameters -->
         <div class="lg:col-span-1">
-          <div class="mb-6 rounded-lg border border-gray-200 bg-white p-4">
-            <h2 class="mb-4 text-lg font-medium text-gray-900">Parameter</h2>
+          <UCard class="h-fit">
+            <template #header>
+              <h2 class="text-lg font-semibold text-gray-900 sm:text-xl dark:text-white">Parameter</h2>
+            </template>
 
             <!-- Voltase Listrik Gauge -->
-            <div class="">
-              <h3 class="mt-2 text-center text-sm font-medium text-gray-700">Voltase Listrik</h3>
+            <div class="mb-6">
+              <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Voltase Listrik</h3>
               <ClientOnly>
                 <highcharts :options="gaugeOptions.voltase" :style="{ height: '200px', width: '100%' }" />
               </ClientOnly>
             </div>
 
             <!-- Debit Air Gauge -->
-            <div class="">
-              <h3 class="mt-2 text-center text-sm font-medium text-gray-700">Debit Air</h3>
+            <div class="mb-6">
+              <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Debit Air</h3>
               <ClientOnly>
                 <highcharts :options="gaugeOptions.debitAir" :style="{ height: '200px', width: '100%' }" />
               </ClientOnly>
@@ -66,23 +68,27 @@
 
             <!-- Jumlah Pasien Gauge -->
             <div class="">
-              <h3 class="mt-2 text-center text-sm font-medium text-gray-700">Jumlah Pasien</h3>
+              <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Jumlah Pasien</h3>
               <ClientOnly>
                 <highcharts :options="gaugeOptions.jumlahPasien" :style="{ height: '200px', width: '100%' }" />
               </ClientOnly>
             </div>
-          </div>
+          </UCard>
         </div>
 
         <!-- Right Side - Line Chart -->
         <div class="lg:col-span-3">
-          <div class="rounded-lg border border-gray-200 bg-white p-4">
-            <h2 class="text-lg font-medium text-gray-900">Grafik</h2>
+          <UCard class="h-fit">
+            <template #header>
+              <h2 class="text-lg font-semibold text-gray-900 sm:text-xl dark:text-white">Grafik</h2>
+            </template>
 
-            <ClientOnly>
-              <highcharts :options="lineChartOptions" :style="{ height: '400px', width: '100%' }" />
-            </ClientOnly>
-          </div>
+            <div lass="h-[400px] sm:h-[500px] lg:h-[600px]">
+              <ClientOnly>
+                <highcharts :options="lineChartOptions" />
+              </ClientOnly>
+            </div>
+          </UCard>
         </div>
       </div>
     </div>
