@@ -14,7 +14,7 @@
           <!-- Time Filter -->
           <USelectMenu
             v-model="selectedTimeFilter"
-            :options="timeFilters"
+            :items="timeFilters"
             option-attribute="label"
             @update:model-value="handleTimeFilterChange"
             class="w-40"
