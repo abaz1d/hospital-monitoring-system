@@ -1,70 +1,125 @@
 <template>
-  <div class="bg-red-200">
-    ini halaman index
-    <ClientOnly>
-      <highcharts
-        ref="chartRef"
-        :options="{
-          chart: {
-            type: 'solidgauge'
-          },
+  <div class="min-h-screen bg-white">
+    <!-- Header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <div class="h-2 w-2 rounded-full bg-green-500"></div>
+            <h1 class="text-xl font-semibold text-gray-900">Rumah Sakit B</h1>
+          </div>
+        </div>
 
-          title: null,
+        <div class="flex items-center space-x-4">
+          <!-- Time Filter -->
+          <USelectMenu
+            v-model="selectedTimeFilter"
+            :options="timeFilters"
+            option-attribute="label"
+            @update:model-value="handleTimeFilterChange"
+            class="w-40"
+          />
 
-          pane: {
-            center: ['50%', '85%'],
-            size: '140%',
-            startAngle: -90,
-            endAngle: 90,
-            background: {
-              backgroundColor: 'var(--highcharts-neutral-color-3, #fafafa)',
-              borderColor: 'var(--highcharts-neutral-color-20, #ccc)',
-              borderRadius: 5,
-              innerRadius: '60%',
-              outerRadius: '100%',
-              shape: 'arc'
-            }
-          },
+          <!-- Real-time Toggle -->
+          <UButton
+            :variant="isRealTimeEnabled ? 'solid' : 'outline'"
+            :color="isRealTimeEnabled ? 'success' : 'neutral'"
+            @click="toggleRealTime"
+            size="sm"
+          >
+            <UIcon name="i-heroicons-play" v-if="!isRealTimeEnabled" />
+            <UIcon name="i-heroicons-pause" v-else />
+            {{ isRealTimeEnabled ? 'Real-time ON' : 'Real-time OFF' }}
+          </UButton>
 
-          exporting: {
-            enabled: false
-          },
+          <!-- Refresh Button -->
+          <UButton variant="outline" color="neutral" @click="refreshData" size="sm">
+            <UIcon name="i-heroicons-arrow-path" />
+            Refresh
+          </UButton>
+        </div>
+      </div>
+    </div>
 
-          tooltip: {
-            enabled: false
-          },
+    <div class="bg-gray-50 p-6">
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <!-- Left Side - Parameters -->
+        <div class="lg:col-span-1">
+          <div class="mb-6 rounded-lg border border-gray-200 bg-white p-4">
+            <h2 class="mb-4 text-lg font-medium text-gray-900">Parameter</h2>
 
-          // the value axis
-          yAxis: {
-            stops: [
-              [0.1, '#55BF3B'], // green
-              [0.5, '#DDDF0D'], // yellow
-              [0.9, '#DF5353'] // red
-            ],
-            lineWidth: 0,
-            tickWidth: 0,
-            minorTickInterval: null,
-            tickAmount: 2,
-            title: {
-              y: -70
-            },
-            labels: {
-              y: 16
-            }
-          },
+            <!-- Voltase Listrik Gauge -->
+            <div class="mb-8">
+              <h3 class="mb-2 text-sm font-medium text-gray-700">Voltase Listrik</h3>
+              <ClientOnly>
+                <highcharts :options="gaugeOptions.voltase" :style="{ height: '200px', width: '100%' }" />
+              </ClientOnly>
+            </div>
 
-          plotOptions: {
-            solidgauge: {
-              borderRadius: 3,
-              dataLabels: {
-                y: 5,
-                borderWidth: 0
-              }
-            }
-          }
-        }"
-        :style="{ height: '100%', width: '100%' }"
-      />
-    </ClientOnly>
+            <!-- Debit Air Gauge -->
+            <div class="mb-8">
+              <h3 class="mb-2 text-sm font-medium text-gray-700">Debit Air</h3>
+              <ClientOnly>
+                <highcharts :options="gaugeOptions.debitAir" :style="{ height: '200px', width: '100%' }" />
+              </ClientOnly>
+            </div>
+
+            <!-- Jumlah Pasien Gauge -->
+            <div class="mb-4">
+              <h3 class="mb-2 text-sm font-medium text-gray-700">Jumlah Pasien</h3>
+              <ClientOnly>
+                <highcharts :options="gaugeOptions.jumlahPasien" :style="{ height: '200px', width: '100%' }" />
+              </ClientOnly>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side - Line Chart -->
+        <div class="lg:col-span-3">
+          <div class="rounded-lg border border-gray-200 bg-white p-4">
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="text-lg font-medium text-gray-900">Grafik</h2>
+              <div class="flex space-x-4 text-sm">
+                <div class="flex items-center space-x-2">
+                  <div class="h-3 w-3 rounded bg-blue-500"></div>
+                  <span class="text-gray-700">electricity</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <div class="h-3 w-3 rounded bg-cyan-500"></div>
+                  <span class="text-gray-700">water</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <div class="h-3 w-3 rounded bg-amber-500"></div>
+                  <span class="text-gray-700">pasien</span>
+                </div>
+              </div>
+            </div>
+
+            <ClientOnly>
+              <highcharts :options="lineChartOptions" :style="{ height: '400px', width: '100%' }" />
+            </ClientOnly>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
+
+<script setup lang="ts">
+const {
+  data,
+  selectedTimeFilter,
+  isRealTimeEnabled,
+  gaugeOptions,
+  lineChartOptions,
+  timeFilters,
+  updateTimeFilter,
+  toggleRealTime,
+  refreshData
+} = useDashboard();
+
+// Handle time filter change
+const handleTimeFilterChange = (filter: any) => {
+  updateTimeFilter(filter);
+};
+</script>
