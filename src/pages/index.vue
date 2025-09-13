@@ -12,13 +12,7 @@
 
         <div class="flex items-center space-x-4">
           <!-- Time Filter -->
-          <USelectMenu
-            v-model="selectedTimeFilter"
-            :items="timeFilters"
-            option-attribute="label"
-            @update:model-value="handleTimeFilterChange"
-            class="w-40"
-          />
+          <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-40" />
 
           <!-- Real-time Toggle -->
           <UButton
@@ -108,8 +102,10 @@ const {
   refreshData
 } = useDashboard();
 
-// Handle time filter change
-const handleTimeFilterChange = (filter: any) => {
-  updateTimeFilter(filter);
-};
+// Watch for changes in selectedTimeFilter
+watch(selectedTimeFilter, (newValue) => {
+  if (newValue) {
+    updateTimeFilter(newValue);
+  }
+});
 </script>

@@ -69,25 +69,25 @@ export function generateDashboardData(timeFilter: string = 'day'): DashboardData
 
   return {
     voltaseListrik: {
-      current: 353,
-      max: 380,
+      current: Math.round((Math.random() * 50 + 200) * 100) / 100,
+      max: 250,
       unit: 'V',
-      color: '#ef4444',
-      historical: generateHistoricalData(330, 50, points, hours)
+      color: 'rgb(220, 38, 127)', // bright magenta red for high contrast
+      historical: generateHistoricalData(220, 30, points, filter.hours)
     },
     debitAir: {
-      current: 28,
-      max: 50,
+      current: Math.round((Math.random() * 20 + 30) * 100) / 100,
+      max: 60,
       unit: 'L/min',
-      color: '#3b82f6',
-      historical: generateHistoricalData(25, 15, points, hours)
+      color: 'rgb(37, 99, 235)', // bright blue for high contrast
+      historical: generateHistoricalData(40, 15, points, filter.hours)
     },
     jumlahPasien: {
-      current: 19,
-      max: 100,
-      unit: 'Orang',
-      color: '#22c55e',
-      historical: generateHistoricalData(20, 8, points, hours)
+      current: Math.round(Math.random() * 50 + 80),
+      max: 150,
+      unit: 'orang',
+      color: 'rgb(34, 197, 94)', // bright green for high contrast
+      historical: generateHistoricalData(100, 30, points, filter.hours)
     }
   };
 }
@@ -99,21 +99,21 @@ export function getRealtimeUpdate(): Partial<DashboardData> {
       current: Math.round((320 + Math.random() * 60) * 10) / 10,
       max: 380,
       unit: 'V',
-      color: '#ef4444',
+      color: 'rgb(220, 38, 127)', // bright magenta red for high contrast
       historical: []
     },
     debitAir: {
       current: Math.round((20 + Math.random() * 20) * 10) / 10,
       max: 50,
       unit: 'L/min',
-      color: '#3b82f6',
+      color: 'rgb(37, 99, 235)', // bright blue for high contrast
       historical: []
     },
     jumlahPasien: {
       current: Math.round(15 + Math.random() * 10),
       max: 100,
       unit: 'Orang',
-      color: '#22c55e',
+      color: 'rgb(34, 197, 94)', // bright green for high contrast
       historical: []
     }
   };

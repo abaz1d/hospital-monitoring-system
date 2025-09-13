@@ -9,7 +9,7 @@ import {
 
 export const useDashboard = () => {
   const data = ref<DashboardData>(generateDashboardData());
-  const selectedTimeFilter = ref<TimeFilter>(timeFilters[1]); // Default to 'Per Hari'
+  const selectedTimeFilter = ref<TimeFilter>(timeFilters[1]); // Default to 'Per Hari' object
   const isRealTimeEnabled = ref(true);
   const refreshInterval = ref<number | null>(null);
 
@@ -43,9 +43,9 @@ export const useDashboard = () => {
         min: 0,
         max: data.value.voltaseListrik.max,
         stops: [
-          [0.1, '#ef4444'], // red for low voltage
-          [0.5, '#eab308'], // yellow for medium
-          [0.9, '#22c55e'] // green for high
+          [0.1, 'rgb(220, 38, 127)'], // bright magenta red for high contrast
+          [0.5, 'rgb(220, 38, 127)'], // bright magenta red for high contrast
+          [0.9, 'rgb(220, 38, 127)'] // bright magenta red for high contrast
         ],
         lineWidth: 0,
         tickWidth: 0,
@@ -103,9 +103,9 @@ export const useDashboard = () => {
         min: 0,
         max: data.value.debitAir.max,
         stops: [
-          [0.1, '#ef4444'], // red for low flow
-          [0.5, '#eab308'], // yellow for medium
-          [0.9, '#22c55e'] // green for good flow
+          [0.1, 'rgb(37, 99, 235)'], // bright blue for high contrast
+          [0.5, 'rgb(37, 99, 235)'], // bright blue for high contrast
+          [0.9, 'rgb(37, 99, 235)'] // bright blue for high contrast
         ],
         lineWidth: 0,
         tickWidth: 0,
@@ -163,9 +163,9 @@ export const useDashboard = () => {
         min: 0,
         max: data.value.jumlahPasien.max,
         stops: [
-          [0.1, '#22c55e'], // green for low occupancy
-          [0.5, '#eab308'], // yellow for medium
-          [0.9, '#ef4444'] // red for high occupancy
+          [0.1, 'rgb(34, 197, 94)'], // bright green for high contrast
+          [0.5, 'rgb(34, 197, 94)'], // bright green for high contrast
+          [0.9, 'rgb(34, 197, 94)'] // bright green for high contrast
         ],
         lineWidth: 0,
         tickWidth: 0,
@@ -248,26 +248,26 @@ export const useDashboard = () => {
     series: [
       {
         name: 'electricity',
-        color: '#3b82f6',
+        color: 'rgb(220, 38, 127)', // bright magenta red for high contrast
         data: data.value.voltaseListrik.historical.map((point) => [point.timestamp, point.value])
       },
       {
         name: 'water',
-        color: '#06b6d4',
+        color: 'rgb(37, 99, 235)', // bright blue for high contrast
         data: data.value.debitAir.historical.map((point) => [point.timestamp, point.value])
       },
       {
         name: 'pasien',
-        color: '#f59e0b',
+        color: 'rgb(34, 197, 94)', // bright green for high contrast
         data: data.value.jumlahPasien.historical.map((point) => [point.timestamp, point.value])
       }
     ]
   }));
 
   // Methods
-  const updateTimeFilter = (filter: TimeFilter) => {
-    selectedTimeFilter.value = filter;
-    data.value = generateDashboardData(filter.value);
+  const updateTimeFilter = (filterValue: TimeFilter) => {
+    selectedTimeFilter.value = filterValue;
+    data.value = generateDashboardData(filterValue.value);
   };
 
   const toggleRealTime = () => {
