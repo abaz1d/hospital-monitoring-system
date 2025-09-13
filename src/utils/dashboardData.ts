@@ -70,21 +70,21 @@ export function generateDashboardData(timeFilter: string = 'day'): DashboardData
   return {
     voltaseListrik: {
       current: Math.round((Math.random() * 50 + 200) * 100) / 100,
-      max: 250,
+      max: 500,
       unit: 'V',
       color: 'rgb(220, 38, 127)', // bright magenta red for high contrast
       historical: generateHistoricalData(220, 30, points, filter.hours)
     },
     debitAir: {
       current: Math.round((Math.random() * 20 + 30) * 100) / 100,
-      max: 60,
+      max: 100,
       unit: 'L/min',
       color: 'rgb(37, 99, 235)', // bright blue for high contrast
       historical: generateHistoricalData(40, 15, points, filter.hours)
     },
     jumlahPasien: {
       current: Math.round(Math.random() * 50 + 80),
-      max: 150,
+      max: 200,
       unit: 'orang',
       color: 'rgb(34, 197, 94)', // bright green for high contrast
       historical: generateHistoricalData(100, 30, points, filter.hours)
@@ -97,21 +97,21 @@ export function getRealtimeUpdate(): Partial<DashboardData> {
   return {
     voltaseListrik: {
       current: Math.round((320 + Math.random() * 60) * 10) / 10,
-      max: 380,
+      max: 500,
       unit: 'V',
       color: 'rgb(220, 38, 127)', // bright magenta red for high contrast
       historical: []
     },
     debitAir: {
       current: Math.round((20 + Math.random() * 20) * 10) / 10,
-      max: 50,
+      max: 100,
       unit: 'L/min',
       color: 'rgb(37, 99, 235)', // bright blue for high contrast
       historical: []
     },
     jumlahPasien: {
       current: Math.round(15 + Math.random() * 10),
-      max: 100,
+      max: 200,
       unit: 'Orang',
       color: 'rgb(34, 197, 94)', // bright green for high contrast
       historical: []

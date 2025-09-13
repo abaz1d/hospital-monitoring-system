@@ -46,7 +46,7 @@
 
               <!-- Voltase Listrik Gauge -->
               <div class="mb-6">
-                <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Voltase Listrik</h3>
+                <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Daya Listrik</h3>
                 <ClientOnly>
                   <highcharts :options="gaugeOptions.voltase" :style="{ height: '150px', width: '100%' }" />
                 </ClientOnly>
