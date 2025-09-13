@@ -14,6 +14,24 @@
           <!-- Time Filter -->
           <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-40" />
 
+          <!-- MQTT Status Indicator -->
+          <div class="flex items-center space-x-2 rounded-md border px-3 py-1">
+            <div :class="['h-2 w-2 rounded-full', isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500']"></div>
+            <span class="text-sm font-medium text-gray-700">
+              {{ connectionStatus }}
+            </span>
+          </div>
+
+          <!-- Data Source Toggle -->
+          <UButton
+            :variant="useMqttData ? 'solid' : 'outline'"
+            :color="useMqttData ? 'primary' : 'neutral'"
+            @click="toggleDataSource"
+            size="sm"
+          >
+            {{ useMqttData ? 'MQTT' : 'Dummy' }}
+          </UButton>
+
           <!-- Real-time Toggle -->
           <UButton
             :variant="isRealTimeEnabled ? 'solid' : 'outline'"
@@ -24,6 +42,12 @@
             <UIcon name="i-heroicons-play" v-if="!isRealTimeEnabled" />
             <UIcon name="i-heroicons-pause" v-else />
             {{ isRealTimeEnabled ? 'Real-time ON' : 'Real-time OFF' }}
+          </UButton>
+
+          <!-- Test MQTT Button (only show if MQTT connected) -->
+          <UButton v-if="isConnected" variant="outline" color="primary" @click="publishTestData" size="sm">
+            <UIcon name="i-heroicons-paper-airplane" />
+            Test MQTT
           </UButton>
 
           <!-- Refresh Button -->
@@ -100,7 +124,14 @@ const {
   timeFilters,
   updateTimeFilter,
   toggleRealTime,
-  refreshData
+  refreshData,
+  // MQTT related
+  isConnected,
+  connectionStatus,
+  useMqttData,
+  toggleDataSource,
+  mqttError,
+  publishTestData
 } = useDashboard();
 
 // Watch for changes in selectedTimeFilter

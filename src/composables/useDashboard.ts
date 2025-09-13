@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import {
   generateDashboardData,
   getRealtimeUpdate,
@@ -6,12 +6,69 @@ import {
   type DashboardData,
   type TimeFilter
 } from '~/utils/dashboardData';
+import { useMqtt } from './useMqtt';
 
 export const useDashboard = () => {
   const data = ref<DashboardData>(generateDashboardData());
   const selectedTimeFilter = ref<TimeFilter>(timeFilters[1]); // Default to 'Per Hari' object
   const isRealTimeEnabled = ref(true);
   const refreshInterval = ref<number | null>(null);
+
+  // MQTT Integration
+  const { mqttData, isConnected, connectionStatus, error: mqttError, publishTestData } = useMqtt();
+  const useMqttData = ref(true); // Toggle untuk menggunakan MQTT atau dummy data
+
+  // Watch MQTT data untuk update real-time
+  watch(
+    mqttData,
+    (newMqttData) => {
+      if (useMqttData.value && isConnected.value) {
+        console.log('📊 Updating dashboard with MQTT data:', newMqttData);
+
+        // Update current values dari MQTT
+        data.value.voltaseListrik.current = newMqttData.electricity;
+        data.value.debitAir.current = newMqttData.water;
+        data.value.jumlahPasien.current = newMqttData.pasien;
+
+        // Add to historical data
+        const timestamp = newMqttData.timestamp;
+        data.value.voltaseListrik.historical.push({
+          timestamp,
+          value: newMqttData.electricity
+        });
+        data.value.debitAir.historical.push({
+          timestamp,
+          value: newMqttData.water
+        });
+        data.value.jumlahPasien.historical.push({
+          timestamp,
+          value: newMqttData.pasien
+        });
+
+        // Keep only last 100 points for performance
+        if (data.value.voltaseListrik.historical.length > 100) {
+          data.value.voltaseListrik.historical = data.value.voltaseListrik.historical.slice(-100);
+          data.value.debitAir.historical = data.value.debitAir.historical.slice(-100);
+          data.value.jumlahPasien.historical = data.value.jumlahPasien.historical.slice(-100);
+        }
+      }
+    },
+    { deep: true }
+  );
+
+  // Toggle between MQTT and dummy data
+  const toggleDataSource = () => {
+    useMqttData.value = !useMqttData.value;
+    console.log('🔄 Data source toggled to:', useMqttData.value ? 'MQTT' : 'Dummy');
+
+    if (!useMqttData.value) {
+      // Fallback to dummy data
+      startRealTimeUpdates();
+    } else {
+      // Use MQTT data
+      stopRealTimeUpdates();
+    }
+  };
 
   // Computed properties for chart configurations
   const gaugeOptions = computed(() => ({
@@ -272,7 +329,9 @@ export const useDashboard = () => {
 
   const toggleRealTime = () => {
     isRealTimeEnabled.value = !isRealTimeEnabled.value;
-    if (isRealTimeEnabled.value) {
+    console.log('🔄 Real-time toggled:', isRealTimeEnabled.value);
+
+    if (isRealTimeEnabled.value && !useMqttData.value) {
       startRealTimeUpdates();
     } else {
       stopRealTimeUpdates();
@@ -280,6 +339,11 @@ export const useDashboard = () => {
   };
 
   const startRealTimeUpdates = () => {
+    if (useMqttData.value) {
+      console.log('⏭️ Skipping dummy updates - using MQTT data');
+      return; // Don't start dummy updates if using MQTT
+    }
+
     if (refreshInterval.value) clearInterval(refreshInterval.value);
 
     refreshInterval.value = setInterval(() => {
@@ -301,7 +365,7 @@ export const useDashboard = () => {
         data.value.debitAir.historical = data.value.debitAir.historical.slice(-100);
         data.value.jumlahPasien.historical = data.value.jumlahPasien.historical.slice(-100);
       }
-    }, 5000); // Update every 5 seconds
+    }, 5000) as any; // Update every 5 seconds
   };
 
   const stopRealTimeUpdates = () => {
@@ -317,7 +381,7 @@ export const useDashboard = () => {
 
   // Lifecycle
   onMounted(() => {
-    if (isRealTimeEnabled.value) {
+    if (isRealTimeEnabled.value && !useMqttData.value) {
       startRealTimeUpdates();
     }
   });
@@ -335,6 +399,13 @@ export const useDashboard = () => {
     timeFilters,
     updateTimeFilter,
     toggleRealTime,
-    refreshData
+    refreshData,
+    // MQTT related
+    isConnected,
+    connectionStatus,
+    useMqttData,
+    toggleDataSource,
+    mqttError,
+    publishTestData
   };
 };
