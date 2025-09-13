@@ -18,7 +18,7 @@ export const useDashboard = () => {
     voltase: {
       chart: {
         type: 'solidgauge',
-        height: 200,
+        height: '150px',
         backgroundColor: 'transparent'
       },
       title: null,
@@ -78,7 +78,7 @@ export const useDashboard = () => {
     debitAir: {
       chart: {
         type: 'solidgauge',
-        height: 200,
+        height: '150px',
         backgroundColor: 'transparent'
       },
       title: null,
@@ -138,7 +138,7 @@ export const useDashboard = () => {
     jumlahPasien: {
       chart: {
         type: 'solidgauge',
-        height: 200,
+        height: '150px',
         backgroundColor: 'transparent'
       },
       title: null,
@@ -200,7 +200,7 @@ export const useDashboard = () => {
     chart: {
       type: 'line',
       backgroundColor: 'transparent',
-      height: 400
+      height: '100%'
     },
     title: null,
     credits: { enabled: false },

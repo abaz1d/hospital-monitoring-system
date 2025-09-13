@@ -49,24 +49,24 @@
             <h2 class="mb-4 text-lg font-medium text-gray-900">Parameter</h2>
 
             <!-- Voltase Listrik Gauge -->
-            <div class="mb-8">
-              <h3 class="mb-2 text-sm font-medium text-gray-700">Voltase Listrik</h3>
+            <div class="">
+              <h3 class="mt-2 text-center text-sm font-medium text-gray-700">Voltase Listrik</h3>
               <ClientOnly>
                 <highcharts :options="gaugeOptions.voltase" :style="{ height: '200px', width: '100%' }" />
               </ClientOnly>
             </div>
 
             <!-- Debit Air Gauge -->
-            <div class="mb-8">
-              <h3 class="mb-2 text-sm font-medium text-gray-700">Debit Air</h3>
+            <div class="">
+              <h3 class="mt-2 text-center text-sm font-medium text-gray-700">Debit Air</h3>
               <ClientOnly>
                 <highcharts :options="gaugeOptions.debitAir" :style="{ height: '200px', width: '100%' }" />
               </ClientOnly>
             </div>
 
             <!-- Jumlah Pasien Gauge -->
-            <div class="mb-4">
-              <h3 class="mb-2 text-sm font-medium text-gray-700">Jumlah Pasien</h3>
+            <div class="">
+              <h3 class="mt-2 text-center text-sm font-medium text-gray-700">Jumlah Pasien</h3>
               <ClientOnly>
                 <highcharts :options="gaugeOptions.jumlahPasien" :style="{ height: '200px', width: '100%' }" />
               </ClientOnly>
@@ -77,23 +77,7 @@
         <!-- Right Side - Line Chart -->
         <div class="lg:col-span-3">
           <div class="rounded-lg border border-gray-200 bg-white p-4">
-            <div class="mb-4 flex items-center justify-between">
-              <h2 class="text-lg font-medium text-gray-900">Grafik</h2>
-              <div class="flex space-x-4 text-sm">
-                <div class="flex items-center space-x-2">
-                  <div class="h-3 w-3 rounded bg-blue-500"></div>
-                  <span class="text-gray-700">electricity</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="h-3 w-3 rounded bg-cyan-500"></div>
-                  <span class="text-gray-700">water</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="h-3 w-3 rounded bg-amber-500"></div>
-                  <span class="text-gray-700">pasien</span>
-                </div>
-              </div>
-            </div>
+            <h2 class="text-lg font-medium text-gray-900">Grafik</h2>
 
             <ClientOnly>
               <highcharts :options="lineChartOptions" :style="{ height: '400px', width: '100%' }" />
