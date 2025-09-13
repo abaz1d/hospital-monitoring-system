@@ -62,7 +62,7 @@ export const useDashboard = () => {
             borderWidth: 0,
             useHTML: true,
             format:
-              '<div style="text-align:center"><span style="font-size:25px;color:#374151">{y}</span><br/><span style="font-size:12px;opacity:0.4">V</span></div>'
+              '<div style="text-align:center"><span style="font-size:25px;color:#374151">{y}</span><br/><span style="font-size:12px;opacity:0.4">KwH</span></div>'
           }
         }
       },

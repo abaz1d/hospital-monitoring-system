@@ -34,58 +34,59 @@
         </div>
       </div>
     </div>
+    <ClientOnly>
+      <div class="bg-gray-50 p-6">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
+          <!-- Left Side - Parameters -->
+          <div class="lg:col-span-1">
+            <UCard class="h-fit">
+              <template #header>
+                <h2 class="text-lg font-semibold text-gray-900 sm:text-xl dark:text-white">Parameter</h2>
+              </template>
 
-    <div class="bg-gray-50 p-6">
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <!-- Left Side - Parameters -->
-        <div class="lg:col-span-1">
-          <UCard class="h-fit">
-            <template #header>
-              <h2 class="text-lg font-semibold text-gray-900 sm:text-xl dark:text-white">Parameter</h2>
-            </template>
+              <!-- Voltase Listrik Gauge -->
+              <div class="mb-6">
+                <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Voltase Listrik</h3>
+                <ClientOnly>
+                  <highcharts :options="gaugeOptions.voltase" :style="{ height: '150px', width: '100%' }" />
+                </ClientOnly>
+              </div>
 
-            <!-- Voltase Listrik Gauge -->
-            <div class="mb-6">
-              <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Voltase Listrik</h3>
-              <ClientOnly>
-                <highcharts :options="gaugeOptions.voltase" :style="{ height: '150px', width: '100%' }" />
-              </ClientOnly>
-            </div>
+              <!-- Debit Air Gauge -->
+              <div class="mb-6">
+                <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Debit Air</h3>
+                <ClientOnly>
+                  <highcharts :options="gaugeOptions.debitAir" :style="{ height: '150px', width: '100%' }" />
+                </ClientOnly>
+              </div>
 
-            <!-- Debit Air Gauge -->
-            <div class="mb-6">
-              <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Debit Air</h3>
-              <ClientOnly>
-                <highcharts :options="gaugeOptions.debitAir" :style="{ height: '150px', width: '100%' }" />
-              </ClientOnly>
-            </div>
+              <!-- Jumlah Pasien Gauge -->
+              <div class="">
+                <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Jumlah Pasien</h3>
+                <ClientOnly>
+                  <highcharts :options="gaugeOptions.jumlahPasien" :style="{ height: '150px', width: '100%' }" />
+                </ClientOnly>
+              </div>
+            </UCard>
+          </div>
 
-            <!-- Jumlah Pasien Gauge -->
-            <div class="">
-              <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Jumlah Pasien</h3>
-              <ClientOnly>
-                <highcharts :options="gaugeOptions.jumlahPasien" :style="{ height: '150px', width: '100%' }" />
-              </ClientOnly>
-            </div>
-          </UCard>
-        </div>
+          <!-- Right Side - Line Chart -->
+          <div class="lg:col-span-3">
+            <UCard class="h-fit">
+              <template #header>
+                <h2 class="text-lg font-semibold text-gray-900 sm:text-xl dark:text-white">Grafik</h2>
+              </template>
 
-        <!-- Right Side - Line Chart -->
-        <div class="lg:col-span-3">
-          <UCard class="h-fit">
-            <template #header>
-              <h2 class="text-lg font-semibold text-gray-900 sm:text-xl dark:text-white">Grafik</h2>
-            </template>
-
-            <div lass="h-[400px] sm:h-[500px] lg:h-[700px]">
-              <ClientOnly>
-                <highcharts :options="lineChartOptions" />
-              </ClientOnly>
-            </div>
-          </UCard>
+              <div lass="h-[400px] sm:h-[500px] lg:h-[700px]">
+                <ClientOnly>
+                  <highcharts :options="lineChartOptions" />
+                </ClientOnly>
+              </div>
+            </UCard>
+          </div>
         </div>
       </div>
-    </div>
+    </ClientOnly>
   </div>
 </template>
 
