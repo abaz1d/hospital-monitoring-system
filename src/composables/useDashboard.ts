@@ -27,10 +27,398 @@ export const useDashboard = () => {
   } = useMqtt();
   const useMqttData = ref(true); // Toggle untuk menggunakan MQTT atau dummy data
 
+  // Export and pause functionality
+  const isDataPaused = ref(false);
+  const pausedData = ref<any>(null);
+
+  // Function to pause data updates for export
+  const pauseDataForExport = () => {
+    isDataPaused.value = true;
+    // Capture current state
+    pausedData.value = {
+      voltaseListrik: { ...data.value.voltaseListrik },
+      debitAir: { ...data.value.debitAir },
+      jumlahPasien: { ...data.value.jumlahPasien },
+      currentHospital: currentHospital.value.name,
+      timestamp: new Date().toISOString()
+    };
+    console.log('⏸️ Data paused for export');
+  };
+
+  // Function to resume data updates
+  const resumeDataUpdates = () => {
+    isDataPaused.value = false;
+    pausedData.value = null;
+    console.log('▶️ Data updates resumed');
+  };
+
+  // Function to export all chart data to Excel
+  const exportToExcel = () => {
+    pauseDataForExport();
+
+    try {
+      // Prepare data for export
+      const exportData = pausedData.value;
+      const timestamp = new Date();
+      const formattedTimestamp = timestamp.toLocaleString('id-ID');
+
+      // Create CSV content (Excel compatible)
+      const csvContent = [
+        // Header
+        ['Hospital Monitoring Data Export'],
+        ['Exported on:', formattedTimestamp],
+        ['Hospital:', exportData.currentHospital],
+        [''],
+        ['Parameter', 'Current Value', 'Maximum Value', 'Unit', 'Status'],
+        // Data rows
+        [
+          'Daya Listrik',
+          exportData.voltaseListrik.current,
+          exportData.voltaseListrik.max,
+          'V',
+          exportData.voltaseListrik.current > exportData.voltaseListrik.max * 0.8 ? 'High' : 'Normal'
+        ],
+        [
+          'Debit Air',
+          exportData.debitAir.current,
+          exportData.debitAir.max,
+          'L/min',
+          exportData.debitAir.current > exportData.debitAir.max * 0.8 ? 'High' : 'Normal'
+        ],
+        [
+          'Jumlah Pasien',
+          exportData.jumlahPasien.current,
+          exportData.jumlahPasien.max,
+          'Orang',
+          exportData.jumlahPasien.current > exportData.jumlahPasien.max * 0.8 ? 'High' : 'Normal'
+        ],
+        [''],
+        ['Historical Data (Last 10 entries):'],
+        ['Timestamp', 'Daya Listrik (V)', 'Debit Air (L/min)', 'Jumlah Pasien (Orang)']
+      ];
+
+      // Add historical data (last 10 entries)
+      const historyLength = Math.min(10, exportData.voltaseListrik.historical.length);
+      for (
+        let i = exportData.voltaseListrik.historical.length - historyLength;
+        i < exportData.voltaseListrik.historical.length;
+        i++
+      ) {
+        const voltaseEntry = exportData.voltaseListrik.historical[i];
+        const debitEntry = exportData.debitAir.historical[i];
+        const pasienEntry = exportData.jumlahPasien.historical[i];
+
+        csvContent.push([
+          new Date(voltaseEntry.timestamp).toLocaleString('id-ID'),
+          voltaseEntry.value,
+          debitEntry?.value || '-',
+          pasienEntry?.value || '-'
+        ]);
+      }
+
+      // Convert to CSV string
+      const csvString = csvContent
+        .map((row) =>
+          row.map((cell) => (typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell)).join(',')
+        )
+        .join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute(
+        'download',
+        `hospital_monitoring_${exportData.currentHospital.replace(/\s+/g, '_')}_${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}_${timestamp.getHours().toString().padStart(2, '0')}${timestamp.getMinutes().toString().padStart(2, '0')}.csv`
+      );
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log('📥 Data exported successfully');
+    } catch (error) {
+      console.error('❌ Export failed:', error);
+    } finally {
+      // Resume data updates after 2 seconds
+      setTimeout(() => {
+        resumeDataUpdates();
+      }, 2000);
+    }
+  };
+
+  // Function to export dashboard as PDF
+  const exportToPDF = async () => {
+    pauseDataForExport();
+
+    try {
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas-pro')).default;
+
+      const doc = new jsPDF();
+      const timestamp = new Date();
+      const exportData = pausedData.value;
+
+      // Header
+      doc.setFontSize(20);
+      doc.text('Hospital Monitoring Report', 20, 20);
+
+      doc.setFontSize(12);
+      doc.text(`Hospital: ${exportData.currentHospital}`, 20, 35);
+      doc.text(`Generated: ${timestamp.toLocaleString('id-ID')}`, 20, 45);
+
+      // Current Data Summary
+      doc.setFontSize(14);
+      doc.text('Current Data Summary:', 20, 65);
+
+      doc.setFontSize(11);
+      doc.text(`Daya Listrik: ${exportData.voltaseListrik.current}V (Max: ${exportData.voltaseListrik.max}V)`, 20, 80);
+      doc.text(`Debit Air: ${exportData.debitAir.current}L/min (Max: ${exportData.debitAir.max}L/min)`, 20, 90);
+      doc.text(
+        `Jumlah Pasien: ${exportData.jumlahPasien.current} Orang (Max: ${exportData.jumlahPasien.max} Orang)`,
+        20,
+        100
+      );
+
+      // Try to capture dashboard image
+      try {
+        const dashboardElement = document.querySelector('.dashboard-content');
+        if (dashboardElement) {
+          const canvas = await html2canvas(dashboardElement as HTMLElement, {
+            scale: 0.5,
+            logging: false,
+            useCORS: true
+          });
+
+          const imgData = canvas.toDataURL('image/png');
+          doc.addImage(imgData, 'PNG', 20, 120, 170, 100);
+        }
+      } catch (imgError) {
+        console.warn('Could not capture dashboard image:', imgError);
+        doc.text('Dashboard visualization could not be captured', 20, 130);
+      }
+
+      // Save PDF
+      doc.save(
+        `hospital_monitoring_${exportData.currentHospital.replace(/\s+/g, '_')}_${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}.pdf`
+      );
+
+      console.log('📄 PDF exported successfully');
+    } catch (error) {
+      console.error('❌ PDF export failed:', error);
+    } finally {
+      setTimeout(() => {
+        resumeDataUpdates();
+      }, 2000);
+    }
+  };
+
+  // Function to export dashboard as image
+  const exportToImage = async () => {
+    pauseDataForExport();
+
+    try {
+      const html2canvas = (await import('html2canvas-pro')).default;
+      const timestamp = new Date();
+      const exportData = pausedData.value;
+
+      console.log('🖼️ Starting image export with html2canvas-pro...');
+
+      // Wait a bit for pause to take effect
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Wait for charts to fully render - increased delay for Highcharts
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Force Highcharts to redraw
+      const highchartsElements = document.querySelectorAll('.highcharts-container');
+      console.log(`Found ${highchartsElements.length} Highcharts containers`);
+
+      // Trigger chart reflow for better capture
+      if (window.Highcharts) {
+        window.Highcharts.charts.forEach((chart) => {
+          if (chart) {
+            chart.reflow();
+          }
+        });
+      }
+
+      const dashboardElement = document.querySelector('.dashboard-content');
+      if (!dashboardElement) {
+        console.error('Dashboard element with class "dashboard-content" not found');
+        throw new Error('Dashboard element not found');
+      }
+
+      console.log('📸 Capturing dashboard element...');
+
+      // Get accurate dimensions including padding/margin
+      const rect = dashboardElement.getBoundingClientRect();
+      const computedStyle = window.getComputedStyle(dashboardElement);
+
+      console.log('Element dimensions:', {
+        boundingRect: {
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          left: rect.left
+        },
+        scroll: {
+          width: dashboardElement.scrollWidth,
+          height: dashboardElement.scrollHeight
+        },
+        offset: {
+          width: (dashboardElement as HTMLElement).offsetWidth,
+          height: (dashboardElement as HTMLElement).offsetHeight
+        },
+        computed: {
+          padding: computedStyle.padding,
+          margin: computedStyle.margin
+        }
+      });
+
+      // Use getBoundingClientRect for more accurate dimensions
+      const captureWidth = Math.max(rect.width, dashboardElement.scrollWidth);
+      const captureHeight = Math.max(rect.height, dashboardElement.scrollHeight);
+
+      const canvas = await html2canvas(dashboardElement as HTMLElement, {
+        scale: 1.5, // Reduced scale to avoid memory issues
+        logging: false, // Disable logging for cleaner output
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: captureWidth,
+        height: captureHeight,
+        x: 0, // Ensure we start from the beginning
+        y: 0, // Ensure we start from the top
+        scrollX: 0,
+        scrollY: 0,
+        // html2canvas-pro should support modern CSS including oklch
+        foreignObjectRendering: true, // Better SVG handling
+        removeContainer: true,
+        ignoreElements: (element) => {
+          return (
+            element.classList.contains('no-capture') || element.tagName === 'SCRIPT' || element.tagName === 'STYLE'
+          );
+        },
+        onclone: (clonedDoc) => {
+          // Additional processing for the cloned document
+          console.log('📋 Processing cloned document...');
+
+          // Force SVG elements to be visible
+          const svgElements = clonedDoc.querySelectorAll('svg');
+          svgElements.forEach((svg) => {
+            svg.style.display = 'block';
+            svg.style.visibility = 'visible';
+            svg.style.opacity = '1';
+            // Ensure SVG has proper dimensions
+            if (!svg.getAttribute('width') && svg.parentElement) {
+              const parent = svg.parentElement;
+              svg.setAttribute('width', parent.offsetWidth.toString());
+              svg.setAttribute('height', parent.offsetHeight.toString());
+            }
+          });
+
+          // Process Highcharts containers specifically
+          const highchartsContainers = clonedDoc.querySelectorAll('.highcharts-container');
+          console.log(`🎯 Found ${highchartsContainers.length} Highcharts containers in clone`);
+
+          highchartsContainers.forEach((container, index) => {
+            console.log(`Processing Highcharts container ${index + 1}`);
+            const svg = container.querySelector('svg');
+            if (svg) {
+              // Force SVG to be rendered properly
+              svg.style.display = 'block';
+              svg.style.visibility = 'visible';
+              svg.style.width = '100%';
+              svg.style.height = '100%';
+            }
+          });
+        }
+      });
+
+      console.log('✅ Canvas created successfully');
+
+      // Create download link immediately
+      const link = document.createElement('a');
+      const url = canvas.toDataURL('image/png');
+
+      link.setAttribute('href', url);
+      link.setAttribute(
+        'download',
+        `hospital_monitoring_${exportData.currentHospital.replace(/\s+/g, '_')}_${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}.png`
+      );
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log('🖼️ Image exported successfully');
+    } catch (error) {
+      console.error('❌ Image export failed:', error);
+      console.error('Error details:', error);
+
+      // Try alternative method with simpler options
+      try {
+        console.log('🔄 Trying alternative html2canvas-pro method...');
+        const html2canvas = (await import('html2canvas-pro')).default;
+        const dashboardElement = document.querySelector('.dashboard-content');
+
+        if (dashboardElement) {
+          // Try with minimal configuration
+          const canvas = await html2canvas(dashboardElement as HTMLElement, {
+            scale: 1,
+            logging: false,
+            backgroundColor: '#ffffff',
+            useCORS: false,
+            allowTaint: false
+          });
+
+          const link = document.createElement('a');
+          const url = canvas.toDataURL('image/png');
+
+          link.setAttribute('href', url);
+          link.setAttribute('download', `hospital_monitoring_fallback_${new Date().getTime()}.png`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          console.log('✅ Html2canvas-pro export successful');
+        }
+      } catch (fallbackError) {
+        console.error('❌ Html2canvas-pro fallback also failed:', fallbackError);
+
+        // Final fallback: show instruction to user
+        const confirmManual = confirm(
+          'Export image gagal. \n\n' +
+            'Apakah Anda ingin mencoba export PDF sebagai alternatif? \n\n' +
+            'Atau Anda bisa screenshot manual dengan menekan Ctrl+Shift+S (Windows) atau Cmd+Shift+4 (Mac)'
+        );
+
+        if (confirmManual) {
+          // Trigger PDF export instead
+          exportToPDF();
+        }
+      }
+    } finally {
+      setTimeout(() => {
+        resumeDataUpdates();
+      }, 2000);
+    }
+  };
+
   // Watch MQTT data untuk update real-time
   watch(
     mqttData,
     (newMqttData) => {
+      // Skip update if data is paused for export
+      if (isDataPaused.value) {
+        console.log('⏸️ Data update skipped - paused for export');
+        return;
+      }
+
       if (useMqttData.value && isConnected.value) {
         console.log('📊 Updating dashboard with MQTT data:', newMqttData);
 
@@ -270,6 +658,7 @@ export const useDashboard = () => {
     },
     title: null,
     credits: { enabled: false },
+    exporting: { enabled: false },
     xAxis: {
       type: 'datetime',
       labels: { style: { color: '#6b7280', fontSize: '12px' } },
@@ -419,6 +808,13 @@ export const useDashboard = () => {
     // Hospital management
     hospitals,
     currentHospital,
-    switchHospital
+    switchHospital,
+    // Export functionality
+    exportToExcel,
+    exportToPDF,
+    exportToImage,
+    pauseDataForExport,
+    resumeDataUpdates,
+    isDataPaused
   };
 };

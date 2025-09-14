@@ -1,43 +1,110 @@
 <template>
-  <div class="min-h-screen bg-white">
+  <div class="dashboard-content min-h-screen bg-white">
     <!-- Header -->
-    <div class="sticky top-0 z-50 border-b border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-6 sm:py-4">
-      <div class="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <!-- Left Section -->
-        <div class="flex items-center space-x-2 sm:space-x-4">
-          <!-- Hamburger Button for Hospital List -->
-          <UButton
-            icon="i-heroicons-bars-3"
-            variant="ghost"
-            size="lg"
-            @click="showHospitalList = true"
-            :title="`Switch Hospital - Current: ${currentHospital.name}`"
-          />
+    <div class="sticky top-0 z-50 border-b border-gray-200">
+      <div class="w-full bg-blue-500 p-1 text-center text-sm font-bold text-white">
+        " MONALISA " Monitoring Air, Listrik dan Sanitasi RSUD Bendan Kota Pekalongan
+      </div>
+      <div class="bg-white px-4 py-3 shadow-sm sm:px-6 sm:py-4">
+        <div class="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <!-- Left Section -->
+          <div class="flex items-center space-x-2 sm:space-x-4">
+            <!-- Hamburger Button for Hospital List -->
+            <UButton
+              icon="i-heroicons-bars-3"
+              variant="ghost"
+              size="lg"
+              @click="showHospitalList = true"
+              :title="`Switch Hospital - Current: ${currentHospital.name}`"
+            />
 
-          <div class="flex items-center space-x-2">
-            <h1 class="text-lg font-semibold text-gray-900 sm:text-xl">{{ currentHospital.name }}</h1>
-          </div>
-        </div>
-
-        <!-- Right Section -->
-        <!-- Time Filter -->
-
-        <div class="flex items-center justify-between space-x-2 sm:space-x-4">
-          <!-- MQTT Status Indicator -->
-          <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-auto" />
-          <div class="flex items-center space-x-2 rounded-md border px-2 py-1 sm:px-3">
-            <div :class="['h-2 w-2 rounded-full', isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500']"></div>
-            <span class="text-xs font-medium text-gray-700 sm:text-sm">
-              <span class="hidden sm:inline">{{ connectionStatus }}</span>
-              <span class="sm:hidden">{{ isConnected ? 'Online' : 'Offline' }}</span>
-            </span>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-lg font-semibold text-gray-900 sm:text-xl">{{ currentHospital.name }}</h1>
+            </div>
           </div>
 
-          <!-- Refresh Button -->
-          <UButton variant="outline" color="neutral" @click="refreshData" size="sm" class="flex-shrink-0">
-            <UIcon name="i-heroicons-arrow-path" />
-            <span class="ml-1">Refresh</span>
-          </UButton>
+          <!-- Right Section -->
+          <!-- Time Filter -->
+
+          <div class="flex items-center justify-between space-x-2 sm:space-x-4">
+            <!-- MQTT Status Indicator -->
+            <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-auto" />
+            <div class="flex items-center space-x-2 rounded-md border px-2 py-1 sm:px-3">
+              <div :class="['h-2 w-2 rounded-full', isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500']"></div>
+              <span class="text-xs font-medium text-gray-700 sm:text-sm">
+                <span class="hidden sm:inline">{{ connectionStatus }}</span>
+                <span class="sm:hidden">{{ isConnected ? 'Online' : 'Offline' }}</span>
+              </span>
+            </div>
+
+            <!-- Refresh Button -->
+            <UButton variant="outline" color="neutral" @click="refreshData" size="sm" class="flex-shrink-0">
+              <UIcon name="i-heroicons-arrow-path" />
+              <span class="ml-1">Refresh</span>
+            </UButton>
+
+            <!-- Export Button with Popover -->
+            <UPopover>
+              <UButton
+                variant="outline"
+                color="primary"
+                size="sm"
+                class="flex-shrink-0"
+                :loading="isDataPaused"
+                :disabled="isDataPaused"
+              >
+                <UIcon name="i-heroicons-arrow-down-tray" />
+                <span class="ml-1 hidden sm:inline">{{ isDataPaused ? 'Exporting...' : 'Export' }}</span>
+                <span class="ml-1 sm:hidden">{{ isDataPaused ? '...' : 'Export' }}</span>
+                <UIcon name="i-heroicons-chevron-down" class="ml-1 h-4 w-4" />
+              </UButton>
+
+              <template #content>
+                <div class="p-2">
+                  <div class="space-y-1">
+                    <!-- Excel Export -->
+                    <UButton
+                      variant="ghost"
+                      color="neutral"
+                      size="sm"
+                      @click="exportToExcel"
+                      :disabled="isDataPaused"
+                      class="w-full justify-start"
+                    >
+                      <UIcon name="i-heroicons-table-cells" class="mr-2" />
+                      Export Excel
+                    </UButton>
+
+                    <!-- PDF Export -->
+                    <UButton
+                      variant="ghost"
+                      color="neutral"
+                      size="sm"
+                      @click="exportToPDF"
+                      :disabled="isDataPaused"
+                      class="w-full justify-start"
+                    >
+                      <UIcon name="i-heroicons-document-text" class="mr-2" />
+                      Export PDF
+                    </UButton>
+
+                    <!-- Image Export -->
+                    <UButton
+                      variant="ghost"
+                      color="neutral"
+                      size="sm"
+                      @click="exportToImage"
+                      :disabled="isDataPaused"
+                      class="w-full justify-start"
+                    >
+                      <UIcon name="i-heroicons-photo" class="mr-2" />
+                      Export Image
+                    </UButton>
+                  </div>
+                </div>
+              </template>
+            </UPopover>
+          </div>
         </div>
       </div>
     </div>
@@ -174,7 +241,12 @@ const {
   // Hospital management
   hospitals,
   currentHospital,
-  switchHospital
+  switchHospital,
+  // Export functionality
+  exportToExcel,
+  exportToPDF,
+  exportToImage,
+  isDataPaused
 } = useDashboard();
 
 // Slideover state
