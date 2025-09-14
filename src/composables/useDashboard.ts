@@ -15,7 +15,16 @@ export const useDashboard = () => {
   const refreshInterval = ref<number | null>(null);
 
   // MQTT Integration
-  const { mqttData, isConnected, connectionStatus, error: mqttError, publishTestData } = useMqtt();
+  const {
+    mqttData,
+    isConnected,
+    connectionStatus,
+    error: mqttError,
+    publishTestData,
+    hospitals,
+    currentHospital,
+    switchHospital
+  } = useMqtt();
   const useMqttData = ref(true); // Toggle untuk menggunakan MQTT atau dummy data
 
   // Watch MQTT data untuk update real-time
@@ -406,6 +415,10 @@ export const useDashboard = () => {
     useMqttData,
     toggleDataSource,
     mqttError,
-    publishTestData
+    publishTestData,
+    // Hospital management
+    hospitals,
+    currentHospital,
+    switchHospital
   };
 };

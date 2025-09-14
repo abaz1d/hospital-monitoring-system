@@ -1,63 +1,104 @@
 <template>
   <div class="min-h-screen bg-white">
     <!-- Header -->
-    <div class="border-b border-gray-200 bg-white px-6 py-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
+    <div class="border-b border-gray-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
+      <div class="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <!-- Left Section -->
+        <div class="flex items-center space-x-2 sm:space-x-4">
+          <!-- Hamburger Button for Hospital List -->
+          <UButton
+            icon="i-heroicons-bars-3"
+            variant="ghost"
+            size="lg"
+            @click="showHospitalList = true"
+            :title="`Switch Hospital - Current: ${currentHospital.name}`"
+          />
+
           <div class="flex items-center space-x-2">
-            <div class="h-2 w-2 rounded-full bg-green-500"></div>
-            <h1 class="text-xl font-semibold text-gray-900">Rumah Sakit B</h1>
+            <h1 class="text-lg font-semibold text-gray-900 sm:text-xl">{{ currentHospital.name }}</h1>
           </div>
         </div>
 
-        <div class="flex items-center space-x-4">
+        <!-- Right Section -->
+        <div class="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
           <!-- Time Filter -->
-          <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-40" />
+          <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-full sm:w-40" />
 
-          <!-- MQTT Status Indicator -->
-          <div class="flex items-center space-x-2 rounded-md border px-3 py-1">
-            <div :class="['h-2 w-2 rounded-full', isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500']"></div>
-            <span class="text-sm font-medium text-gray-700">
-              {{ connectionStatus }}
-            </span>
+          <div class="flex items-center space-x-2 sm:space-x-4">
+            <!-- MQTT Status Indicator -->
+            <div class="flex items-center space-x-2 rounded-md border px-2 py-1 sm:px-3">
+              <div :class="['h-2 w-2 rounded-full', isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500']"></div>
+              <span class="text-xs font-medium text-gray-700 sm:text-sm">
+                <span class="hidden sm:inline">{{ connectionStatus }}</span>
+                <span class="sm:hidden">{{ isConnected ? 'Online' : 'Offline' }}</span>
+              </span>
+            </div>
+
+            <!-- Refresh Button -->
+            <UButton variant="outline" color="neutral" @click="refreshData" size="sm" class="flex-shrink-0">
+              <UIcon name="i-heroicons-arrow-path" />
+              <span class="ml-1 hidden sm:inline">Refresh</span>
+            </UButton>
           </div>
-
-          <!-- Data Source Toggle -->
-          <UButton
-            :variant="useMqttData ? 'solid' : 'outline'"
-            :color="useMqttData ? 'primary' : 'neutral'"
-            @click="toggleDataSource"
-            size="sm"
-          >
-            {{ useMqttData ? 'MQTT' : 'Dummy' }}
-          </UButton>
-
-          <!-- Real-time Toggle -->
-          <UButton
-            :variant="isRealTimeEnabled ? 'solid' : 'outline'"
-            :color="isRealTimeEnabled ? 'success' : 'neutral'"
-            @click="toggleRealTime"
-            size="sm"
-          >
-            <UIcon name="i-heroicons-play" v-if="!isRealTimeEnabled" />
-            <UIcon name="i-heroicons-pause" v-else />
-            {{ isRealTimeEnabled ? 'Real-time ON' : 'Real-time OFF' }}
-          </UButton>
-
-          <!-- Test MQTT Button (only show if MQTT connected) -->
-          <UButton v-if="isConnected" variant="outline" color="primary" @click="publishTestData" size="sm">
-            <UIcon name="i-heroicons-paper-airplane" />
-            Test MQTT
-          </UButton>
-
-          <!-- Refresh Button -->
-          <UButton variant="outline" color="neutral" @click="refreshData" size="sm">
-            <UIcon name="i-heroicons-arrow-path" />
-            Refresh
-          </UButton>
         </div>
       </div>
     </div>
+
+    <!-- Hospital Selection Slideover -->
+    <USlideover v-model:open="showHospitalList" side="left">
+      <template #content>
+        <UCard class="flex flex-1 flex-col">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h3 class="text-base leading-6 font-semibold text-gray-900">Pilih Rumah Sakit</h3>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-heroicons-x-mark-20-solid"
+                @click="showHospitalList = false"
+              />
+            </div>
+          </template>
+
+          <div class="flex-1 space-y-2">
+            <!-- Hospital List -->
+            <div
+              v-for="hospital in hospitals"
+              :key="hospital.id"
+              @click="selectHospital(hospital)"
+              :class="[
+                'cursor-pointer rounded-lg border p-4 transition-all duration-200',
+                currentHospital.id === hospital.id
+                  ? 'border-primary-500 bg-primary-50 ring-primary-500 ring-1'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              ]"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="font-medium text-gray-900">{{ hospital.name }}</p>
+                  <p class="text-sm text-gray-500">Topic: {{ hospital.topic }}</p>
+                </div>
+                <div v-if="currentHospital.id === hospital.id" class="text-primary-600 flex items-center">
+                  <UIcon name="i-heroicons-check-circle-solid" class="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-gray-500">
+                MQTT Status:
+                <span :class="isConnected ? 'text-green-600' : 'text-red-600'">
+                  {{ connectionStatus }}
+                </span>
+              </div>
+            </div>
+          </template>
+        </UCard>
+      </template>
+    </USlideover>
+
     <ClientOnly>
       <div class="bg-gray-50 p-6">
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
@@ -131,8 +172,21 @@ const {
   useMqttData,
   toggleDataSource,
   mqttError,
-  publishTestData
+  publishTestData,
+  // Hospital management
+  hospitals,
+  currentHospital,
+  switchHospital
 } = useDashboard();
+
+// Slideover state
+const showHospitalList = ref(false);
+
+// Function to select hospital
+const selectHospital = (hospital: any) => {
+  switchHospital(hospital);
+  showHospitalList.value = false;
+};
 
 // Watch for changes in selectedTimeFilter
 watch(selectedTimeFilter, (newValue) => {

@@ -7,6 +7,12 @@ interface MqttMessage {
   pasien: number;
 }
 
+interface Hospital {
+  id: string;
+  name: string;
+  topic: string;
+}
+
 export const useMqtt = () => {
   const client = ref<MqttClient | null>(null);
   const isConnected = ref(false);
@@ -20,11 +26,19 @@ export const useMqtt = () => {
   });
   const error = ref<string | null>(null);
 
+  // Hospital list configuration
+  const hospitals = ref<Hospital[]>([
+    { id: 'rs-a', name: 'Rumah Sakit A - Ruang Mawar', topic: '/ruangMawar' },
+    { id: 'rs-b', name: 'Rumah Sakit B - Ruang Melati', topic: '/ruangMelati' }
+  ]);
+
+  const currentHospital = ref<Hospital>(hospitals.value[0]);
+  const currentTopic = ref(currentHospital.value.topic);
+
   // MQTT Configuration - using SSL connection to HiveMQ
   const mqttConfig = {
     // Using WSS for browser compatibility (SSL WebSocket)
     broker: 'wss://broker.hivemq.com:8884/mqtt',
-    topic: '/ruangMawar',
     clientId: `dashboard_client_${Math.random().toString(16).substr(2, 8)}`,
     options: {
       clean: true,
@@ -56,12 +70,12 @@ export const useMqtt = () => {
         connectionStatus.value = 'Connected';
         error.value = null;
 
-        // Subscribe to the topic
-        client.value?.subscribe(mqttConfig.topic, (err) => {
+        // Subscribe to the current hospital topic
+        client.value?.subscribe(currentTopic.value, (err) => {
           if (!err) {
-            console.log(`✅ Subscribed to ${mqttConfig.topic}`);
+            console.log(`✅ Subscribed to ${currentTopic.value}`);
           } else {
-            console.error(`❌ Failed to subscribe to ${mqttConfig.topic}:`, err);
+            console.error(`❌ Failed to subscribe to ${currentTopic.value}:`, err);
             error.value = `Subscribe error: ${err.message}`;
           }
         });
@@ -100,7 +114,7 @@ export const useMqtt = () => {
         try {
           console.log(`📨 Received message from ${topic}:`, message.toString());
 
-          if (topic === mqttConfig.topic) {
+          if (topic === currentTopic.value) {
             const data = JSON.parse(message.toString()) as MqttMessage;
 
             // Validate the message structure
@@ -148,7 +162,7 @@ export const useMqtt = () => {
   const publish = (message: MqttMessage) => {
     if (client.value && isConnected.value) {
       const payload = JSON.stringify(message);
-      client.value.publish(mqttConfig.topic, payload, (err) => {
+      client.value.publish(currentTopic.value, payload, (err) => {
         if (err) {
           console.error('❌ Publish error:', err);
           error.value = `Publish error: ${err.message}`;
@@ -159,6 +173,46 @@ export const useMqtt = () => {
     } else {
       console.warn('⚠️ Cannot publish: MQTT client not connected');
       error.value = 'Not connected to MQTT broker';
+    }
+  };
+
+  // Function to switch hospital
+  const switchHospital = (hospital: Hospital) => {
+    if (client.value && isConnected.value) {
+      // Unsubscribe from current topic
+      client.value.unsubscribe(currentTopic.value, (err) => {
+        if (!err) {
+          console.log(`✅ Unsubscribed from ${currentTopic.value}`);
+        } else {
+          console.error(`❌ Failed to unsubscribe from ${currentTopic.value}:`, err);
+        }
+      });
+
+      // Update current hospital and topic
+      currentHospital.value = hospital;
+      currentTopic.value = hospital.topic;
+
+      // Subscribe to new topic
+      client.value.subscribe(currentTopic.value, (err) => {
+        if (!err) {
+          console.log(`✅ Subscribed to ${currentTopic.value} for ${hospital.name}`);
+        } else {
+          console.error(`❌ Failed to subscribe to ${currentTopic.value}:`, err);
+          error.value = `Subscribe error: ${err.message}`;
+        }
+      });
+
+      // Reset data when switching hospitals
+      mqttData.value = {
+        electricity: 0,
+        water: 0,
+        pasien: 0,
+        timestamp: Date.now()
+      };
+    } else {
+      // If not connected, just update the hospital for when connection is established
+      currentHospital.value = hospital;
+      currentTopic.value = hospital.topic;
     }
   };
 
@@ -190,11 +244,17 @@ export const useMqtt = () => {
     lastMessage,
     error,
 
+    // Hospital management
+    hospitals,
+    currentHospital,
+    currentTopic,
+
     // Methods
     connect,
     disconnect,
     publish,
     publishTestData,
+    switchHospital,
 
     // Config (for debugging)
     mqttConfig
