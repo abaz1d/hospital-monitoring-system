@@ -60,15 +60,7 @@ export const useDashboard = () => {
       // Prepare data for export
       const exportData = pausedData.value;
       const timestamp = new Date();
-      const formattedTimestamp = timestamp.toLocaleString('id-ID', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      });
+      const formattedTimestamp = `${timestamp.getDate().toString().padStart(2, '0')}/${(timestamp.getMonth() + 1).toString().padStart(2, '0')}/${timestamp.getFullYear()} ${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`;
 
       // Create CSV content (Excel compatible)
       const csvContent = [
@@ -116,20 +108,10 @@ export const useDashboard = () => {
         const debitEntry = exportData.debitAir.historical[i];
         const pasienEntry = exportData.jumlahPasien.historical[i];
 
-        csvContent.push([
-          new Date(voltaseEntry.timestamp).toLocaleString('id-ID', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-          }),
-          voltaseEntry.value,
-          debitEntry?.value || '-',
-          pasienEntry?.value || '-'
-        ]);
+        const timestamp = new Date(voltaseEntry.timestamp);
+        const formattedTimestamp = `${timestamp.getDate().toString().padStart(2, '0')}/${(timestamp.getMonth() + 1).toString().padStart(2, '0')}/${timestamp.getFullYear()} ${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`;
+
+        csvContent.push([formattedTimestamp, voltaseEntry.value, debitEntry?.value || '-', pasienEntry?.value || '-']);
       }
 
       // Convert to CSV string
@@ -184,15 +166,7 @@ export const useDashboard = () => {
       doc.setFontSize(12);
       doc.text(`Hospital: ${exportData.currentHospital}`, 20, 35);
       doc.text(
-        `Generated: ${timestamp.toLocaleString('id-ID', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
-        })}`,
+        `Generated: ${timestamp.getDate().toString().padStart(2, '0')}/${(timestamp.getMonth() + 1).toString().padStart(2, '0')}/${timestamp.getFullYear()} ${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`,
         20,
         45
       );
