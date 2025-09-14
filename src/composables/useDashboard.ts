@@ -60,7 +60,15 @@ export const useDashboard = () => {
       // Prepare data for export
       const exportData = pausedData.value;
       const timestamp = new Date();
-      const formattedTimestamp = timestamp.toLocaleString('id-ID');
+      const formattedTimestamp = timestamp.toLocaleString('id-ID', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
 
       // Create CSV content (Excel compatible)
       const csvContent = [
@@ -109,7 +117,15 @@ export const useDashboard = () => {
         const pasienEntry = exportData.jumlahPasien.historical[i];
 
         csvContent.push([
-          new Date(voltaseEntry.timestamp).toLocaleString('id-ID'),
+          new Date(voltaseEntry.timestamp).toLocaleString('id-ID', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          }),
           voltaseEntry.value,
           debitEntry?.value || '-',
           pasienEntry?.value || '-'
@@ -167,7 +183,19 @@ export const useDashboard = () => {
 
       doc.setFontSize(12);
       doc.text(`Hospital: ${exportData.currentHospital}`, 20, 35);
-      doc.text(`Generated: ${timestamp.toLocaleString('id-ID')}`, 20, 45);
+      doc.text(
+        `Generated: ${timestamp.toLocaleString('id-ID', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        })}`,
+        20,
+        45
+      );
 
       // Current Data Summary
       doc.setFontSize(14);
