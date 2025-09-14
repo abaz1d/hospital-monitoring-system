@@ -141,7 +141,6 @@
               <div class="flex items-center justify-between">
                 <div>
                   <p class="font-medium text-gray-900">{{ hospital.name }}</p>
-                  <p class="text-sm text-gray-500">Topic: {{ hospital.topic }}</p>
                 </div>
                 <div v-if="currentHospital.id === hospital.id" class="text-primary-600 flex items-center">
                   <UIcon name="i-heroicons-check-circle-solid" class="h-5 w-5" />
@@ -153,7 +152,7 @@
           <template #footer>
             <div class="flex items-center justify-between">
               <div class="text-sm text-gray-500">
-                MQTT Status:
+                Status:
                 <span :class="isConnected ? 'text-green-600' : 'text-red-600'">
                   {{ connectionStatus }}
                 </span>
