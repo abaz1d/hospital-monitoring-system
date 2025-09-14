@@ -9,8 +9,18 @@ export default defineNuxtConfig({
       options: {
         minifyIdentifiers: true,
         minifySyntax: true,
-        minifyWhitespace: true
-        // drop: ["console"],
+        minifyWhitespace: true,
+        drop: ['console']
+      }
+    }
+  },
+  vite: {
+    build: {
+      minify: process.env.NODE_ENV === 'development' ? false : 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true
+        }
       }
     }
   },
