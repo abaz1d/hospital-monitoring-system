@@ -38,7 +38,7 @@ export const useMqtt = () => {
   // MQTT Configuration - using SSL connection to HiveMQ
   const mqttConfig = {
     // Using WSS for browser compatibility (SSL WebSocket)
-    broker: 'wss://broker.hivemq.com:8884/mqtt',
+    broker: import.meta.env.MQTT_BROKER_URL,
     clientId: `dashboard_client_${Math.random().toString(16).substr(2, 8)}`,
     options: {
       clean: true,
