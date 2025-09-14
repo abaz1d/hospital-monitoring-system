@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="sticky top-0 z-50 border-b border-gray-200">
       <div class="w-full bg-blue-500 p-1 text-center text-xl font-bold text-white">
-        " MONALISA " Monitoring Air, Listrik dan Sanitasi RSUD Bendan Kota Pekalongan
+        " MONALISA " Monitoring Air, Listrik, dan Sanitasi RSUD Bendan Kota Pekalongan
       </div>
       <div class="bg-white px-4 py-3 shadow-sm sm:px-6 sm:py-4">
         <div class="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
