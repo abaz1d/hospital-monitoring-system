@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-white">
     <!-- Header -->
-    <div class="border-b border-gray-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
+    <div class="sticky top-0 z-50 border-b border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-6 sm:py-4">
       <div class="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <!-- Left Section -->
         <div class="flex items-center space-x-2 sm:space-x-4">
@@ -20,26 +20,24 @@
         </div>
 
         <!-- Right Section -->
-        <div class="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-          <!-- Time Filter -->
-          <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-full sm:w-40" />
+        <!-- Time Filter -->
 
-          <div class="flex items-center space-x-2 sm:space-x-4">
-            <!-- MQTT Status Indicator -->
-            <div class="flex items-center space-x-2 rounded-md border px-2 py-1 sm:px-3">
-              <div :class="['h-2 w-2 rounded-full', isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500']"></div>
-              <span class="text-xs font-medium text-gray-700 sm:text-sm">
-                <span class="hidden sm:inline">{{ connectionStatus }}</span>
-                <span class="sm:hidden">{{ isConnected ? 'Online' : 'Offline' }}</span>
-              </span>
-            </div>
-
-            <!-- Refresh Button -->
-            <UButton variant="outline" color="neutral" @click="refreshData" size="sm" class="flex-shrink-0">
-              <UIcon name="i-heroicons-arrow-path" />
-              <span class="ml-1 hidden sm:inline">Refresh</span>
-            </UButton>
+        <div class="flex items-center justify-between space-x-2 sm:space-x-4">
+          <!-- MQTT Status Indicator -->
+          <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-auto" />
+          <div class="flex items-center space-x-2 rounded-md border px-2 py-1 sm:px-3">
+            <div :class="['h-2 w-2 rounded-full', isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500']"></div>
+            <span class="text-xs font-medium text-gray-700 sm:text-sm">
+              <span class="hidden sm:inline">{{ connectionStatus }}</span>
+              <span class="sm:hidden">{{ isConnected ? 'Online' : 'Offline' }}</span>
+            </span>
           </div>
+
+          <!-- Refresh Button -->
+          <UButton variant="outline" color="neutral" @click="refreshData" size="sm" class="flex-shrink-0">
+            <UIcon name="i-heroicons-arrow-path" />
+            <span class="ml-1">Refresh</span>
+          </UButton>
         </div>
       </div>
     </div>
