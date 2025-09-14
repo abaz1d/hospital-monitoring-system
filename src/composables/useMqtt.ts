@@ -28,8 +28,8 @@ export const useMqtt = () => {
 
   // Hospital list configuration
   const hospitals = ref<Hospital[]>([
-    { id: 'rs-a', name: 'Rumah Sakit A - Ruang Mawar', topic: '/ruangMawar' },
-    { id: 'rs-b', name: 'Rumah Sakit B - Ruang Melati', topic: '/ruangMelati' }
+    { id: 'rs-a', name: 'RSUD Bendan - Ruang Jlamprang', topic: '/ruangMawar' },
+    { id: 'rs-b', name: 'RSUD Bendan - Ruang Truntum', topic: '/ruangMelati' }
   ]);
 
   const currentHospital = ref<Hospital>(hospitals.value[0]);
