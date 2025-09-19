@@ -5,6 +5,7 @@ interface MqttMessage {
   electricity: number;
   water: number;
   pasien: number;
+  ph?: number; // Optional pH field
 }
 
 interface Hospital {
@@ -22,6 +23,7 @@ export const useMqtt = () => {
     electricity: 0,
     water: 0,
     pasien: 0,
+    ph: 7.0, // Default pH value
     timestamp: Date.now()
   });
   const error = ref<string | null>(null);
@@ -128,6 +130,7 @@ export const useMqtt = () => {
                 electricity: data.electricity,
                 water: data.water,
                 pasien: data.pasien,
+                ph: data.ph || 7.0, // Default to neutral pH if not provided
                 timestamp: Date.now()
               };
 
@@ -207,6 +210,7 @@ export const useMqtt = () => {
         electricity: 0,
         water: 0,
         pasien: 0,
+        ph: 7.0,
         timestamp: Date.now()
       };
     } else {
@@ -221,7 +225,8 @@ export const useMqtt = () => {
     const testData: MqttMessage = {
       electricity: Math.floor(Math.random() * 100) + 200,
       water: Math.floor(Math.random() * 50) + 20,
-      pasien: Math.floor(Math.random() * 30) + 10
+      pasien: Math.floor(Math.random() * 30) + 10,
+      ph: Math.round((Math.random() * 6 + 4) * 100) / 100 // pH 4.00 - 10.00
     };
     publish(testData);
   };

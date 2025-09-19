@@ -21,6 +21,13 @@ export interface DashboardData {
     color: string;
     historical: Array<{ timestamp: number; value: number }>;
   };
+  ph?: {
+    current: number;
+    max: number;
+    unit: string;
+    color: string;
+    historical: Array<{ timestamp: number; value: number }>;
+  };
 }
 
 export interface TimeFilter {
@@ -30,11 +37,11 @@ export interface TimeFilter {
 }
 
 export const timeFilters: TimeFilter[] = [
-  { label: 'Per Jam', value: 'hour', hours: 1 },
-  { label: 'Per Hari', value: 'day', hours: 24 },
-  { label: 'Per Bulan', value: 'month', hours: 24 * 30 },
-  { label: '1 Tahun', value: 'year', hours: 24 * 365 },
-  { label: 'All Time', value: 'all', hours: 0 }
+  { label: 'Real-time', value: 'realtime', hours: 0 },
+  { label: '1 Jam', value: '1h', hours: 1 },
+  { label: '24 Jam', value: '24h', hours: 24 },
+  { label: '7 Hari', value: '7d', hours: 168 },
+  { label: '30 Hari', value: '30d', hours: 720 }
 ];
 
 // Generate realistic historical data

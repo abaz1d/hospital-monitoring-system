@@ -6,11 +6,12 @@ import {
   type DashboardData,
   type TimeFilter
 } from '~/utils/dashboardData';
+import { useDatabase } from './useDatabase';
 import { useMqtt } from './useMqtt';
 
 export const useDashboard = () => {
   const data = ref<DashboardData>(generateDashboardData());
-  const selectedTimeFilter = ref<TimeFilter>(timeFilters[1]); // Default to 'Per Hari' object
+  const selectedTimeFilter = ref<TimeFilter>(timeFilters[0]); // Default to 'Real-time'
   const isRealTimeEnabled = ref(true);
   const refreshInterval = ref<number | null>(null);
 
@@ -25,11 +26,104 @@ export const useDashboard = () => {
     currentHospital,
     switchHospital
   } = useMqtt();
+
+  // Database Integration
+  const { loading: dbLoading, error: dbError, getHistoricalFromDatabase, getCurrentFromDatabase } = useDatabase();
+
   const useMqttData = ref(true); // Toggle untuk menggunakan MQTT atau dummy data
 
   // Export and pause functionality
   const isDataPaused = ref(false);
   const pausedData = ref<any>(null);
+
+  // Data source management
+  const isRealTimeMode = computed(() => selectedTimeFilter.value.value === 'realtime');
+  const isLoadingHistorical = ref(false);
+
+  // Function to load data based on selected filter
+  const loadDataByFilter = async () => {
+    if (isRealTimeMode.value) {
+      // Real-time mode: use MQTT data
+      console.log('📡 Using real-time MQTT data');
+      return;
+    }
+
+    // Historical mode: load from database
+    console.log(`📊 Loading historical data for ${selectedTimeFilter.value.label}`);
+    isLoadingHistorical.value = true;
+
+    try {
+      const hours = getHoursFromFilter(selectedTimeFilter.value.value);
+      const historicalData = await getHistoricalFromDatabase(currentHospital.value.id, hours);
+
+      if (historicalData) {
+        // Convert database format to dashboard format
+        data.value = convertDatabaseToChartData(historicalData);
+        console.log('✅ Historical data loaded successfully');
+      }
+    } catch (error) {
+      console.error('❌ Failed to load historical data:', error);
+    } finally {
+      isLoadingHistorical.value = false;
+    }
+  };
+
+  // Helper function to convert time filter to hours
+  const getHoursFromFilter = (filterValue: string): number => {
+    switch (filterValue) {
+      case '1h':
+        return 1;
+      case '24h':
+        return 24;
+      case '7d':
+        return 168;
+      case '30d':
+        return 720;
+      default:
+        return 24;
+    }
+  };
+
+  // Convert database data to chart format
+  const convertDatabaseToChartData = (dbData: any): DashboardData => {
+    const convertToChartSeries = (dataArray: any[], label: string) => {
+      return dataArray.map((item) => ({
+        timestamp: new Date(item.timestamp).getTime(),
+        value: parseFloat(item.value)
+      }));
+    };
+
+    return {
+      voltaseListrik: {
+        current: dbData.electricity[dbData.electricity.length - 1]?.value || 0,
+        max: 500,
+        unit: 'V',
+        color: '#3b82f6',
+        historical: convertToChartSeries(dbData.electricity, 'Voltase')
+      },
+      debitAir: {
+        current: dbData.water[dbData.water.length - 1]?.value || 0,
+        max: 100,
+        unit: 'L/min',
+        color: '#10b981',
+        historical: convertToChartSeries(dbData.water, 'Debit Air')
+      },
+      jumlahPasien: {
+        current: dbData.pasien[dbData.pasien.length - 1]?.value || 0,
+        max: 200,
+        unit: 'Orang',
+        color: '#f59e0b',
+        historical: convertToChartSeries(dbData.pasien, 'Jumlah Pasien')
+      },
+      ph: {
+        current: dbData.ph[dbData.ph.length - 1]?.value || 7.0,
+        max: 14,
+        unit: 'pH',
+        color: '#8b5cf6',
+        historical: convertToChartSeries(dbData.ph, 'pH Level')
+      }
+    };
+  };
 
   // Function to pause data updates for export
   const pauseDataForExport = () => {
@@ -776,14 +870,69 @@ export const useDashboard = () => {
   };
 
   const refreshData = () => {
-    data.value = generateDashboardData(selectedTimeFilter.value.value);
+    if (isRealTimeMode.value) {
+      data.value = generateDashboardData(selectedTimeFilter.value.value);
+    } else {
+      loadDataByFilter();
+    }
   };
 
+  // Watchers
+  watch(selectedTimeFilter, async (newFilter) => {
+    console.log(`🔄 Filter changed to: ${newFilter.label}`);
+    await loadDataByFilter();
+  });
+
+  watch(currentHospital, async () => {
+    console.log(`🏥 Hospital changed to: ${currentHospital.value.name}`);
+    if (!isRealTimeMode.value) {
+      await loadDataByFilter();
+    }
+  });
+
+  // Watch MQTT data untuk real-time mode
+  watch(mqttData, (newData) => {
+    if (isRealTimeMode.value && useMqttData.value && !isDataPaused.value) {
+      // Update current values from MQTT
+      data.value.voltaseListrik.current = newData.electricity;
+      data.value.debitAir.current = newData.water;
+      data.value.jumlahPasien.current = newData.pasien;
+
+      if (data.value.ph && newData.ph !== undefined) {
+        data.value.ph.current = newData.ph;
+      }
+
+      // Add to historical data for real-time chart
+      const timestamp = newData.timestamp;
+
+      data.value.voltaseListrik.historical.push({ timestamp, value: newData.electricity });
+      data.value.debitAir.historical.push({ timestamp, value: newData.water });
+      data.value.jumlahPasien.historical.push({ timestamp, value: newData.pasien });
+
+      if (data.value.ph && newData.ph !== undefined) {
+        data.value.ph.historical.push({ timestamp, value: newData.ph });
+      }
+
+      // Keep only last 50 points for real-time chart performance
+      if (data.value.voltaseListrik.historical.length > 50) {
+        data.value.voltaseListrik.historical.shift();
+        data.value.debitAir.historical.shift();
+        data.value.jumlahPasien.historical.shift();
+        if (data.value.ph) data.value.ph.historical.shift();
+      }
+
+      console.log('📊 Real-time data updated from MQTT');
+    }
+  });
+
   // Lifecycle
-  onMounted(() => {
+  onMounted(async () => {
     if (isRealTimeEnabled.value && !useMqttData.value) {
       startRealTimeUpdates();
     }
+
+    // Load initial data based on filter
+    await loadDataByFilter();
   });
 
   onUnmounted(() => {
@@ -817,6 +966,12 @@ export const useDashboard = () => {
     exportToImage,
     pauseDataForExport,
     resumeDataUpdates,
-    isDataPaused
+    isDataPaused,
+    // Database functionality
+    dbLoading,
+    dbError,
+    isRealTimeMode,
+    isLoadingHistorical,
+    loadDataByFilter
   };
 };

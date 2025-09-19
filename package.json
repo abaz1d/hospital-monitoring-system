@@ -12,12 +12,15 @@
   "dependencies": {
     "@nuxt/ui": "^3.3.3",
     "@pinia/nuxt": "^0.11.2",
+    "@types/pg": "^8.15.5",
     "highcharts": "^12.4.0",
     "highcharts-vue": "^2.0.1",
     "html2canvas-pro": "^1.5.11",
     "jspdf": "^3.0.2",
     "mqtt": "^5.14.1",
+    "node-cron": "^4.2.1",
     "nuxt": "^3.19.1",
+    "pg": "^8.16.3",
     "pinia": "^3.0.3",
     "vue": "^3.5.21",
     "vue-router": "^4.5.1"
