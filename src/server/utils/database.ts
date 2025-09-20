@@ -136,6 +136,61 @@ export async function getHistoricalData(hospitalCode: string, hours: number = 24
   }
 }
 
+export async function getHistoricalDataByDateRange(hospitalCode: string, startDate: string, endDate: string) {
+  const pool = getDatabase();
+  const client = await pool.connect();
+
+  try {
+    const hospitalResult = await client.query(
+      'SELECT id FROM hospitals WHERE hospital_code = $1 AND is_active = true',
+      [hospitalCode]
+    );
+
+    if (hospitalResult.rows.length === 0) {
+      throw new Error(`Hospital with code ${hospitalCode} not found`);
+    }
+
+    const hospitalId = hospitalResult.rows[0].id;
+
+    // Convert dates to proper format for PostgreSQL
+    const startDateTime = new Date(startDate + 'T00:00:00Z');
+    const endDateTime = new Date(endDate + 'T23:59:59Z');
+
+    console.log(`📅 Fetching data from ${startDateTime.toISOString()} to ${endDateTime.toISOString()}`);
+
+    const [electricityData, waterData, patientData, phData] = await Promise.all([
+      client.query(
+        'SELECT voltage_value as value, recorded_at as timestamp FROM electricity_readings WHERE hospital_id = $1 AND recorded_at >= $2 AND recorded_at <= $3 ORDER BY recorded_at ASC',
+        [hospitalId, startDateTime, endDateTime]
+      ),
+      client.query(
+        'SELECT flow_rate as value, recorded_at as timestamp FROM water_readings WHERE hospital_id = $1 AND recorded_at >= $2 AND recorded_at <= $3 ORDER BY recorded_at ASC',
+        [hospitalId, startDateTime, endDateTime]
+      ),
+      client.query(
+        'SELECT patient_count as value, recorded_at as timestamp FROM patient_readings WHERE hospital_id = $1 AND recorded_at >= $2 AND recorded_at <= $3 ORDER BY recorded_at ASC',
+        [hospitalId, startDateTime, endDateTime]
+      ),
+      client.query(
+        'SELECT ph_value as value, recorded_at as timestamp FROM ph_readings WHERE hospital_id = $1 AND recorded_at >= $2 AND recorded_at <= $3 ORDER BY recorded_at ASC',
+        [hospitalId, startDateTime, endDateTime]
+      )
+    ]);
+
+    return {
+      electricity: electricityData.rows,
+      water: waterData.rows,
+      pasien: patientData.rows,
+      ph: phData.rows
+    };
+  } catch (error) {
+    console.error('❌ Error fetching historical data by date range:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function getCurrentData(hospitalCode: string) {
   const pool = getDatabase();
   const client = await pool.connect();

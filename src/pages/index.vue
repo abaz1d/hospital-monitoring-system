@@ -27,8 +27,43 @@
           <!-- Time Filter -->
 
           <div class="flex items-center justify-between space-x-2 sm:space-x-4">
-            <!-- MQTT Status Indicator -->
-            <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-auto" />
+            <!-- Time Filter -->
+            <div class="flex items-center space-x-2">
+              <USelectMenu v-model="selectedTimeFilter" :items="timeFilters" class="w-auto" />
+
+              <!-- Date Range Picker (only show when custom is selected) -->
+              <div v-if="selectedTimeFilter?.value === 'custom'" class="flex items-center space-x-2">
+                <UPopover>
+                  <UButton variant="outline" size="sm" :label="dateRangeText" icon="i-heroicons-calendar-days" />
+                  <template #content>
+                    <div class="w-80 p-4">
+                      <div class="space-y-4">
+                        <div>
+                          <label class="mb-1 block text-sm font-medium text-gray-700">Start Date</label>
+                          <input
+                            v-model="customDateRange.start"
+                            type="date"
+                            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label class="mb-1 block text-sm font-medium text-gray-700">End Date</label>
+                          <input
+                            v-model="customDateRange.end"
+                            type="date"
+                            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div class="flex justify-end space-x-2">
+                          <UButton variant="outline" size="sm" @click="clearDateRange"> Clear </UButton>
+                          <UButton size="sm" @click="applyDateRange"> Apply </UButton>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </UPopover>
+              </div>
+            </div>
             <div class="flex items-center space-x-2 rounded-md border px-2 py-1 sm:px-3">
               <div :class="['h-2 w-2 rounded-full', isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500']"></div>
               <span class="text-xs font-medium text-gray-700 sm:text-sm">
@@ -100,6 +135,33 @@
                       <UIcon name="i-heroicons-photo" class="mr-2" />
                       Export Image
                     </UButton>
+
+                    <!-- Separator -->
+                    <div class="my-1 border-t border-gray-200"></div>
+
+                    <!-- Test Hospital Data -->
+                    <UButton
+                      variant="ghost"
+                      color="primary"
+                      size="sm"
+                      @click="publishTestData"
+                      class="w-full justify-start"
+                    >
+                      <UIcon name="i-heroicons-beaker" class="mr-2" />
+                      Test Hospital Data
+                    </UButton>
+
+                    <!-- Test pH Data -->
+                    <UButton
+                      variant="ghost"
+                      color="secondary"
+                      size="sm"
+                      @click="publishTestPhData"
+                      class="w-full justify-start"
+                    >
+                      <UIcon name="i-heroicons-flask" class="mr-2" />
+                      Test pH Data
+                    </UButton>
                   </div>
                 </div>
               </template>
@@ -130,22 +192,68 @@
             <div
               v-for="hospital in hospitals"
               :key="hospital.id"
-              @click="selectHospital(hospital)"
+              @click="hospital.isActive ? selectHospital(hospital) : null"
               :class="[
-                'cursor-pointer rounded-lg border p-4 transition-all duration-200',
-                currentHospital.id === hospital.id
+                'rounded-lg border p-4 transition-all duration-200',
+                hospital.isActive ? 'cursor-pointer' : 'cursor-not-allowed opacity-60',
+                hospital.isActive && currentHospital.id === hospital.id
                   ? 'border-primary-500 bg-primary-50 ring-primary-500 ring-1'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  : hospital.isActive
+                    ? 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    : 'border-gray-100 bg-gray-50'
               ]"
             >
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="font-medium text-gray-900">{{ hospital.name }}</p>
+                  <p :class="['font-medium', hospital.isActive ? 'text-gray-900' : 'text-gray-400']">
+                    {{ hospital.name }}
+                  </p>
+                  <p v-if="!hospital.isActive" class="mt-1 text-xs text-gray-400">Belum Tersedia</p>
                 </div>
-                <div v-if="currentHospital.id === hospital.id" class="text-primary-600 flex items-center">
-                  <UIcon name="i-heroicons-check-circle-solid" class="h-5 w-5" />
+                <div class="flex items-center space-x-2">
+                  <!-- Active/Inactive Status -->
+                  <div :class="['h-2 w-2 rounded-full', hospital.isActive ? 'bg-green-500' : 'bg-gray-300']"></div>
+
+                  <!-- Selected Indicator -->
+                  <div
+                    v-if="hospital.isActive && currentHospital.id === hospital.id"
+                    class="text-primary-600 flex items-center"
+                  >
+                    <UIcon name="i-heroicons-check-circle-solid" class="h-5 w-5" />
+                  </div>
                 </div>
               </div>
+            </div>
+
+            <!-- pH Gauge Section -->
+            <div class="mt-6 border-t border-gray-200 pt-4">
+              <UCard>
+                <template #header>
+                  <h3 class="text-sm font-semibold text-gray-900">pH Monitor</h3>
+                  <p class="text-xs text-gray-500">Global Sensor</p>
+                </template>
+
+                <div class="space-y-4">
+                  <!-- pH Gauge -->
+                  <div class="text-center">
+                    <ClientOnly>
+                      <highcharts :options="gaugeOptions.ph" :style="{ height: '150px', width: '100%' }" />
+                    </ClientOnly>
+                  </div>
+
+                  <!-- pH Status Indicator -->
+                  <div class="text-center">
+                    <span
+                      :class="[
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                        phStatus.color
+                      ]"
+                    >
+                      {{ phStatus.label }}
+                    </span>
+                  </div>
+                </div>
+              </UCard>
             </div>
           </div>
 
@@ -237,6 +345,7 @@ const {
   toggleDataSource,
   mqttError,
   publishTestData,
+  publishTestPhData, // pH test function
   // Hospital management
   hospitals,
   currentHospital,
@@ -251,15 +360,97 @@ const {
 // Slideover state
 const showHospitalList = ref(false);
 
+// Date range picker state
+const customDateRange = ref({
+  start: '',
+  end: ''
+});
+
+// Computed untuk menampilkan text date range
+const dateRangeText = computed(() => {
+  if (customDateRange.value.start && customDateRange.value.end) {
+    return `${customDateRange.value.start} - ${customDateRange.value.end}`;
+  }
+  return 'Select Date Range';
+});
+
+// Computed untuk pH status dengan color coding
+const phStatus = computed(() => {
+  const phValue = data.value?.ph?.current || 7.0;
+
+  if (phValue < 6.5) {
+    return {
+      label: 'Asam',
+      color: 'bg-red-100 text-red-800'
+    };
+  } else if (phValue > 8.5) {
+    return {
+      label: 'Basa',
+      color: 'bg-blue-100 text-blue-800'
+    };
+  } else {
+    return {
+      label: 'Normal',
+      color: 'bg-green-100 text-green-800'
+    };
+  }
+});
+
 // Function to select hospital
 const selectHospital = (hospital: any) => {
   switchHospital(hospital);
   showHospitalList.value = false;
 };
 
+// Handle time filter change
+const onTimeFilterChange = (newValue: any) => {
+  if (newValue?.value === 'custom') {
+    // Set default date range to today
+    const today = new Date().toISOString().split('T')[0];
+    customDateRange.value.start = today;
+    customDateRange.value.end = today;
+  }
+  updateTimeFilter(newValue);
+};
+
+// Apply custom date range
+const applyDateRange = () => {
+  if (customDateRange.value.start && customDateRange.value.end) {
+    // Calculate hours between dates
+    const startDate = new Date(customDateRange.value.start);
+    const endDate = new Date(customDateRange.value.end);
+    const hoursDiff = Math.abs(endDate.getTime() - startDate.getTime()) / 36e5;
+
+    // Update the filter with custom hours and date range
+    const customFilter = {
+      label: `Custom (${customDateRange.value.start} - ${customDateRange.value.end})`,
+      value: 'custom',
+      hours: Math.ceil(hoursDiff),
+      dateRange: {
+        start: customDateRange.value.start,
+        end: customDateRange.value.end
+      }
+    };
+
+    updateTimeFilter(customFilter);
+  }
+};
+
+// Clear date range
+const clearDateRange = () => {
+  customDateRange.value.start = '';
+  customDateRange.value.end = '';
+};
+
 // Watch for changes in selectedTimeFilter
 watch(selectedTimeFilter, (newValue) => {
   if (newValue) {
+    // Handle custom filter setup
+    if (newValue.value === 'custom' && !customDateRange.value.start) {
+      const today = new Date().toISOString().split('T')[0];
+      customDateRange.value.start = today;
+      customDateRange.value.end = today;
+    }
     updateTimeFilter(newValue);
   }
 });

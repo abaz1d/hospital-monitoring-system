@@ -38,14 +38,26 @@ export const useDatabase = () => {
   };
 
   // Get historical data from database
-  const getHistoricalFromDatabase = async (hospitalCode: string, hours: number = 24): Promise<DatabaseData | null> => {
+  const getHistoricalFromDatabase = async (
+    hospitalCode: string,
+    hours: number = 24,
+    dateRange?: { startDate: string; endDate: string }
+  ): Promise<DatabaseData | null> => {
     loading.value = true;
     error.value = null;
 
     try {
-      const { data } = await $fetch<{ success: boolean; data: DatabaseData }>(
-        `/api/history/${hospitalCode}?hours=${hours}`
-      );
+      let url = `/api/history/${hospitalCode}`;
+
+      if (dateRange) {
+        // Use date range
+        url += `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
+      } else {
+        // Use hours
+        url += `?hours=${hours}`;
+      }
+
+      const { data } = await $fetch<{ success: boolean; data: DatabaseData }>(url);
       return data;
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch historical data';

@@ -18,10 +18,12 @@ export const useDashboard = () => {
   // MQTT Integration
   const {
     mqttData,
+    phData, // Global pH data
     isConnected,
     connectionStatus,
     error: mqttError,
     publishTestData,
+    publishTestPhData, // pH test function
     hospitals,
     currentHospital,
     switchHospital
@@ -38,7 +40,52 @@ export const useDashboard = () => {
 
   // Data source management
   const isRealTimeMode = computed(() => selectedTimeFilter.value.value === 'realtime');
+  const isCustomRangeMode = computed(() => selectedTimeFilter.value.value === 'custom');
   const isLoadingHistorical = ref(false);
+
+  // Custom date range state
+  const customDateRange = ref<{ start: Date; end: Date } | null>(null);
+  const showDateRangePicker = ref(false);
+
+  // Function to get hours based on filter type
+  const getHoursFromFilter = (filterValue: string): number => {
+    const now = new Date();
+
+    switch (filterValue) {
+      case 'today': {
+        // From start of today to now
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return Math.ceil((now.getTime() - startOfDay.getTime()) / (1000 * 60 * 60));
+      }
+      case 'week': {
+        // From start of this week to now
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        return Math.ceil((now.getTime() - startOfWeek.getTime()) / (1000 * 60 * 60));
+      }
+      case 'month': {
+        // From start of this month to now
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        return Math.ceil((now.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60));
+      }
+      case 'year': {
+        // From start of this year to now
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        return Math.ceil((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60));
+      }
+      case 'custom': {
+        if (customDateRange.value) {
+          return Math.ceil(
+            (customDateRange.value.end.getTime() - customDateRange.value.start.getTime()) / (1000 * 60 * 60)
+          );
+        }
+        return 24; // Default fallback
+      }
+      default:
+        return selectedTimeFilter.value.hours;
+    }
+  };
 
   // Function to load data based on selected filter
   const loadDataByFilter = async () => {
@@ -53,8 +100,27 @@ export const useDashboard = () => {
     isLoadingHistorical.value = true;
 
     try {
-      const hours = getHoursFromFilter(selectedTimeFilter.value.value);
-      const historicalData = await getHistoricalFromDatabase(currentHospital.value.id, hours);
+      let historicalData;
+
+      if (selectedTimeFilter.value.value === 'custom' && selectedTimeFilter.value.dateRange) {
+        // Custom date range: use specific dates
+        const { start, end } = selectedTimeFilter.value.dateRange;
+        console.log(`📅 Custom date range: ${start} to ${end}`);
+
+        // Call getHistoricalFromDatabase with date range
+        historicalData = await getHistoricalFromDatabase(
+          currentHospital.value.id,
+          24, // default hours, will be overridden by date range
+          {
+            startDate: start,
+            endDate: end
+          }
+        );
+      } else {
+        // Standard time filter: use hours
+        const hours = getHoursFromFilter(selectedTimeFilter.value.value);
+        historicalData = await getHistoricalFromDatabase(currentHospital.value.id, hours);
+      }
 
       if (historicalData) {
         // Convert database format to dashboard format
@@ -65,22 +131,6 @@ export const useDashboard = () => {
       console.error('❌ Failed to load historical data:', error);
     } finally {
       isLoadingHistorical.value = false;
-    }
-  };
-
-  // Helper function to convert time filter to hours
-  const getHoursFromFilter = (filterValue: string): number => {
-    switch (filterValue) {
-      case '1h':
-        return 1;
-      case '24h':
-        return 24;
-      case '7d':
-        return 168;
-      case '30d':
-        return 720;
-      default:
-        return 24;
     }
   };
 
@@ -743,6 +793,66 @@ export const useDashboard = () => {
           color: data.value.jumlahPasien.color
         }
       ]
+    },
+
+    ph: {
+      chart: {
+        type: 'solidgauge',
+        height: '150px',
+        backgroundColor: 'transparent'
+      },
+      title: null,
+      credits: { enabled: false },
+      pane: {
+        center: ['50%', '85%'],
+        size: '140%',
+        startAngle: -90,
+        endAngle: 90,
+        background: {
+          backgroundColor: '#f3f4f6',
+          borderColor: '#d1d5db',
+          borderRadius: 5,
+          innerRadius: '60%',
+          outerRadius: '100%',
+          shape: 'arc'
+        }
+      },
+      exporting: { enabled: false },
+      tooltip: { enabled: false },
+      yAxis: {
+        min: 0,
+        max: data.value.ph?.max || 14,
+        stops: [
+          [0.1, 'rgb(168, 85, 247)'], // bright purple for pH
+          [0.5, 'rgb(168, 85, 247)'], // bright purple for pH
+          [0.9, 'rgb(168, 85, 247)'] // bright purple for pH
+        ],
+        lineWidth: 0,
+        tickWidth: 0,
+        minorTickInterval: null,
+        tickAmount: 2,
+        title: { text: null },
+        labels: { y: 16, style: { color: '#6b7280', fontSize: '12px' } }
+      },
+      plotOptions: {
+        solidgauge: {
+          borderRadius: 3,
+          dataLabels: {
+            y: 5,
+            borderWidth: 0,
+            useHTML: true,
+            format:
+              '<div style="text-align:center"><span style="font-size:25px;color:#374151">{y}</span><br/><span style="font-size:12px;opacity:0.4">pH</span></div>'
+          }
+        }
+      },
+      series: [
+        {
+          name: 'pH Level',
+          data: [data.value.ph?.current || 7.0],
+          color: data.value.ph?.color || '#a855f7'
+        }
+      ]
     }
   }));
 
@@ -811,6 +921,11 @@ export const useDashboard = () => {
         name: 'pasien',
         color: 'rgb(34, 197, 94)', // bright green for high contrast
         data: data.value.jumlahPasien.historical.map((point) => [point.timestamp, point.value])
+      },
+      {
+        name: 'pH',
+        color: 'rgb(168, 85, 247)', // bright purple for pH
+        data: data.value.ph?.historical?.map((point) => [point.timestamp, point.value]) || []
       }
     ]
   }));
@@ -893,14 +1008,10 @@ export const useDashboard = () => {
   // Watch MQTT data untuk real-time mode
   watch(mqttData, (newData) => {
     if (isRealTimeMode.value && useMqttData.value && !isDataPaused.value) {
-      // Update current values from MQTT
+      // Update current values from MQTT (hospital-specific data)
       data.value.voltaseListrik.current = newData.electricity;
       data.value.debitAir.current = newData.water;
       data.value.jumlahPasien.current = newData.pasien;
-
-      if (data.value.ph && newData.ph !== undefined) {
-        data.value.ph.current = newData.ph;
-      }
 
       // Add to historical data for real-time chart
       const timestamp = newData.timestamp;
@@ -909,19 +1020,35 @@ export const useDashboard = () => {
       data.value.debitAir.historical.push({ timestamp, value: newData.water });
       data.value.jumlahPasien.historical.push({ timestamp, value: newData.pasien });
 
-      if (data.value.ph && newData.ph !== undefined) {
-        data.value.ph.historical.push({ timestamp, value: newData.ph });
-      }
-
       // Keep only last 50 points for real-time chart performance
       if (data.value.voltaseListrik.historical.length > 50) {
         data.value.voltaseListrik.historical.shift();
         data.value.debitAir.historical.shift();
         data.value.jumlahPasien.historical.shift();
-        if (data.value.ph) data.value.ph.historical.shift();
       }
 
-      console.log('📊 Real-time data updated from MQTT');
+      console.log('📊 Real-time hospital data updated from MQTT');
+    }
+  });
+
+  // Watch pH data separately (global sensor)
+  watch(phData, (newPhData) => {
+    if (isRealTimeMode.value && useMqttData.value && !isDataPaused.value) {
+      // Update pH current value
+      if (data.value.ph) {
+        data.value.ph.current = newPhData.ph;
+
+        // Add to historical data for real-time chart
+        const timestamp = newPhData.timestamp;
+        data.value.ph.historical.push({ timestamp, value: newPhData.ph });
+
+        // Keep only last 50 points for real-time chart performance
+        if (data.value.ph.historical.length > 50) {
+          data.value.ph.historical.shift();
+        }
+
+        console.log('📊 Real-time pH data updated from MQTT');
+      }
     }
   });
 
@@ -956,6 +1083,7 @@ export const useDashboard = () => {
     toggleDataSource,
     mqttError,
     publishTestData,
+    publishTestPhData, // pH test function
     // Hospital management
     hospitals,
     currentHospital,

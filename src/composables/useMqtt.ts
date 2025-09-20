@@ -5,13 +5,17 @@ interface MqttMessage {
   electricity: number;
   water: number;
   pasien: number;
-  ph?: number; // Optional pH field
+}
+
+interface PhMessage {
+  ph: number;
 }
 
 interface Hospital {
   id: string;
   name: string;
   topic: string;
+  isActive: boolean; // Indicates if hospital data is available
 }
 
 export const useMqtt = () => {
@@ -23,15 +27,24 @@ export const useMqtt = () => {
     electricity: 0,
     water: 0,
     pasien: 0,
+    timestamp: Date.now()
+  });
+
+  // Separate pH data (global sensor)
+  const phData = ref<{ ph: number; timestamp: number }>({
     ph: 7.0, // Default pH value
     timestamp: Date.now()
   });
+
   const error = ref<string | null>(null);
 
   // Hospital list configuration
   const hospitals = ref<Hospital[]>([
-    { id: 'rs-a', name: 'RSUD Bendan - Ruang Jlamprang', topic: '/ruangMawar' },
-    { id: 'rs-b', name: 'RSUD Bendan - Ruang Truntum', topic: '/ruangMelati' }
+    { id: 'rs-a', name: 'RSUD Bendan - Ruang Jlamprang', topic: '/ruangMawar', isActive: true },
+    { id: 'rs-b', name: 'RSUD Bendan - Ruang Truntum', topic: '/ruangMelati', isActive: true },
+    { id: 'rs-c', name: 'RSUD Bendan - Ruang Anggrek', topic: '/ruangAnggrek', isActive: false },
+    { id: 'rs-d', name: 'RSUD Bendan - Ruang Dahlia', topic: '/ruangDahlia', isActive: false },
+    { id: 'rs-e', name: 'RSUD Bendan - Ruang Kenanga', topic: '/ruangKenanga', isActive: false }
   ]);
 
   const currentHospital = ref<Hospital>(hospitals.value[0]);
@@ -81,6 +94,16 @@ export const useMqtt = () => {
             error.value = `Subscribe error: ${err.message}`;
           }
         });
+
+        // Subscribe to global pH sensor topic
+        client.value?.subscribe('/ph', (err) => {
+          if (!err) {
+            console.log('✅ Subscribed to /ph (global sensor)');
+          } else {
+            console.error('❌ Failed to subscribe to /ph:', err);
+            error.value = `pH Subscribe error: ${err.message}`;
+          }
+        });
       });
 
       // Connection error
@@ -117,6 +140,7 @@ export const useMqtt = () => {
           console.log(`📨 Received message from ${topic}:`, message.toString());
 
           if (topic === currentTopic.value) {
+            // Handle hospital-specific data (electricity, water, pasien)
             const data = JSON.parse(message.toString()) as MqttMessage;
 
             // Validate the message structure
@@ -130,14 +154,28 @@ export const useMqtt = () => {
                 electricity: data.electricity,
                 water: data.water,
                 pasien: data.pasien,
-                ph: data.ph || 7.0, // Default to neutral pH if not provided
                 timestamp: Date.now()
               };
 
-              console.log('✅ Data updated:', mqttData.value);
+              console.log('✅ Hospital data updated:', mqttData.value);
             } else {
-              console.warn('⚠️ Invalid message format:', data);
-              error.value = 'Invalid message format';
+              console.warn('⚠️ Invalid hospital message format:', data);
+              error.value = 'Invalid hospital message format';
+            }
+          } else if (topic === '/ph') {
+            // Handle global pH sensor data
+            const data = JSON.parse(message.toString()) as PhMessage;
+
+            if (typeof data.ph === 'number') {
+              phData.value = {
+                ph: data.ph,
+                timestamp: Date.now()
+              };
+
+              console.log('✅ pH data updated:', phData.value);
+            } else {
+              console.warn('⚠️ Invalid pH message format:', data);
+              error.value = 'Invalid pH message format';
             }
           }
         } catch (parseError) {
@@ -181,6 +219,13 @@ export const useMqtt = () => {
 
   // Function to switch hospital
   const switchHospital = (hospital: Hospital) => {
+    // Only allow switching to active hospitals
+    if (!hospital.isActive) {
+      console.warn(`⚠️ Cannot switch to inactive hospital: ${hospital.name}`);
+      error.value = `${hospital.name} belum tersedia`;
+      return;
+    }
+
     if (client.value && isConnected.value) {
       // Unsubscribe from current topic
       client.value.unsubscribe(currentTopic.value, (err) => {
@@ -205,12 +250,11 @@ export const useMqtt = () => {
         }
       });
 
-      // Reset data when switching hospitals
+      // Reset hospital data when switching hospitals (pH remains global)
       mqttData.value = {
         electricity: 0,
         water: 0,
         pasien: 0,
-        ph: 7.0,
         timestamp: Date.now()
       };
     } else {
@@ -220,15 +264,36 @@ export const useMqtt = () => {
     }
   };
 
-  // Test function to publish sample data
+  // Test function to publish sample hospital data
   const publishTestData = () => {
     const testData: MqttMessage = {
       electricity: Math.floor(Math.random() * 100) + 200,
       water: Math.floor(Math.random() * 50) + 20,
-      pasien: Math.floor(Math.random() * 30) + 10,
-      ph: Math.round((Math.random() * 6 + 4) * 100) / 100 // pH 4.00 - 10.00
+      pasien: Math.floor(Math.random() * 30) + 10
     };
     publish(testData);
+  };
+
+  // Test function to publish sample pH data
+  const publishTestPhData = () => {
+    const testPhData: PhMessage = {
+      ph: Math.round((Math.random() * 6 + 4) * 100) / 100 // pH 4.00 - 10.00
+    };
+
+    if (client.value && isConnected.value) {
+      const payload = JSON.stringify(testPhData);
+      client.value.publish('/ph', payload, (err) => {
+        if (err) {
+          console.error('❌ pH Publish error:', err);
+          error.value = `pH Publish error: ${err.message}`;
+        } else {
+          console.log('✅ pH Message published:', payload);
+        }
+      });
+    } else {
+      console.warn('⚠️ Cannot publish pH: MQTT client not connected');
+      error.value = 'Not connected to MQTT broker';
+    }
   };
 
   // Lifecycle hooks
@@ -246,6 +311,7 @@ export const useMqtt = () => {
     isConnected,
     connectionStatus,
     mqttData,
+    phData, // Global pH data
     lastMessage,
     error,
 
@@ -259,6 +325,7 @@ export const useMqtt = () => {
     disconnect,
     publish,
     publishTestData,
+    publishTestPhData, // pH test function
     switchHospital,
 
     // Config (for debugging)

@@ -34,14 +34,19 @@ export interface TimeFilter {
   label: string;
   value: string;
   hours: number;
+  dateRange?: {
+    start: string;
+    end: string;
+  };
 }
 
 export const timeFilters: TimeFilter[] = [
   { label: 'Real-time', value: 'realtime', hours: 0 },
-  { label: '1 Jam', value: '1h', hours: 1 },
-  { label: '24 Jam', value: '24h', hours: 24 },
-  { label: '7 Hari', value: '7d', hours: 168 },
-  { label: '30 Hari', value: '30d', hours: 720 }
+  { label: 'Hari Ini', value: 'today', hours: 24 },
+  { label: 'Minggu Ini', value: 'week', hours: 168 },
+  { label: 'Bulan Ini', value: 'month', hours: 720 },
+  { label: 'Tahun Ini', value: 'year', hours: 8760 },
+  { label: 'Custom Range', value: 'custom', hours: 0 }
 ];
 
 // Generate realistic historical data
