@@ -139,34 +139,34 @@ export const useDashboard = () => {
     const convertToChartSeries = (dataArray: any[], label: string) => {
       return dataArray.map((item) => ({
         timestamp: new Date(item.timestamp).getTime(),
-        value: parseFloat(item.value)
+        value: Number(item.value || 0)
       }));
     };
 
     return {
       voltaseListrik: {
-        current: dbData.electricity[dbData.electricity.length - 1]?.value || 0,
+        current: Number(dbData.electricity[dbData.electricity.length - 1]?.value || 0),
         max: 500,
         unit: 'V',
         color: '#3b82f6',
         historical: convertToChartSeries(dbData.electricity, 'Voltase')
       },
       debitAir: {
-        current: dbData.water[dbData.water.length - 1]?.value || 0,
+        current: Number(dbData.water[dbData.water.length - 1]?.value || 0),
         max: 100,
         unit: 'L/min',
         color: '#10b981',
         historical: convertToChartSeries(dbData.water, 'Debit Air')
       },
       jumlahPasien: {
-        current: dbData.pasien[dbData.pasien.length - 1]?.value || 0,
+        current: Number(dbData.pasien[dbData.pasien.length - 1]?.value || 0),
         max: 200,
         unit: 'Orang',
         color: '#f59e0b',
         historical: convertToChartSeries(dbData.pasien, 'Jumlah Pasien')
       },
       ph: {
-        current: dbData.ph[dbData.ph.length - 1]?.value || 7.0,
+        current: Number(dbData.ph[dbData.ph.length - 1]?.value || 7.0),
         max: 14,
         unit: 'pH',
         color: '#8b5cf6',
@@ -196,97 +196,286 @@ export const useDashboard = () => {
     console.log('▶️ Data updates resumed');
   };
 
-  // Function to export all chart data to Excel
-  const exportToExcel = () => {
+  // Function to export data to Excel based on current filter
+  const exportToExcel = async () => {
     pauseDataForExport();
 
     try {
-      // Prepare data for export
-      const exportData = pausedData.value;
       const timestamp = new Date();
       const formattedTimestamp = `${timestamp.getDate().toString().padStart(2, '0')}/${(timestamp.getMonth() + 1).toString().padStart(2, '0')}/${timestamp.getFullYear()} ${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`;
 
-      // Create CSV content (Excel compatible)
+      let historicalData;
+      let exportData;
+
+      console.log('🔍 Debug - Current data structure:', {
+        isRealTimeMode: isRealTimeMode.value,
+        dataValue: data.value,
+        voltaseListrik: data.value?.voltaseListrik,
+        selectedFilter: selectedTimeFilter.value
+      });
+
+      // Safe number formatter
+      const safeNumber = (value: any, defaultValue: number = 0): number => {
+        const num = Number(value);
+        return isNaN(num) ? defaultValue : num;
+      };
+
+      const safeToFixed = (value: any, digits: number = 2, defaultValue: number = 0): string => {
+        return safeNumber(value, defaultValue).toFixed(digits);
+      }; // Get appropriate data based on current filter
+      if (isRealTimeMode.value) {
+        // Real-time mode: use current MQTT data with recent history
+        exportData = {
+          voltaseListrik: {
+            current: Number(data.value.voltaseListrik?.current || 0),
+            max: data.value.voltaseListrik?.max || 500,
+            unit: data.value.voltaseListrik?.unit || 'V',
+            color: data.value.voltaseListrik?.color || '#3b82f6',
+            historical: data.value.voltaseListrik?.historical || []
+          },
+          debitAir: {
+            current: Number(data.value.debitAir?.current || 0),
+            max: data.value.debitAir?.max || 100,
+            unit: data.value.debitAir?.unit || 'L/min',
+            color: data.value.debitAir?.color || '#10b981',
+            historical: data.value.debitAir?.historical || []
+          },
+          jumlahPasien: {
+            current: Number(data.value.jumlahPasien?.current || 0),
+            max: data.value.jumlahPasien?.max || 50,
+            unit: data.value.jumlahPasien?.unit || 'Orang',
+            color: data.value.jumlahPasien?.color || '#f59e0b',
+            historical: data.value.jumlahPasien?.historical || []
+          },
+          ph: data.value.ph
+            ? {
+                current: Number(data.value.ph.current || 7),
+                max: data.value.ph.max || 14,
+                unit: data.value.ph.unit || 'pH',
+                color: data.value.ph.color || '#8b5cf6',
+                historical: data.value.ph.historical || []
+              }
+            : null,
+          currentHospital: currentHospital.value.name,
+          filterType: 'Real-time'
+        };
+      } else {
+        // Historical mode: get data from database based on filter
+        if (selectedTimeFilter.value.value === 'custom' && selectedTimeFilter.value.dateRange) {
+          // Custom date range
+          const { start, end } = selectedTimeFilter.value.dateRange;
+          historicalData = await getHistoricalFromDatabase(currentHospital.value.id, 24, {
+            startDate: start,
+            endDate: end
+          });
+          exportData = {
+            ...convertDatabaseToChartData(historicalData),
+            currentHospital: currentHospital.value.name,
+            filterType: `Custom Range (${start} - ${end})`
+          };
+        } else {
+          // Standard time filter
+          const hours = getHoursFromFilter(selectedTimeFilter.value.value);
+          historicalData = await getHistoricalFromDatabase(currentHospital.value.id, hours);
+          exportData = {
+            ...convertDatabaseToChartData(historicalData),
+            currentHospital: currentHospital.value.name,
+            filterType: selectedTimeFilter.value.label
+          };
+        }
+      }
+
+      console.log('📊 Debug - Export data structure:', {
+        exportData,
+        voltaseListrikCurrent: exportData?.voltaseListrik?.current,
+        voltaseListrikCurrentType: typeof exportData?.voltaseListrik?.current,
+        phCurrent: exportData?.ph?.current,
+        phCurrentType: typeof exportData?.ph?.current,
+        hasHistoricalData: exportData?.voltaseListrik?.historical?.length || 0
+      });
+
+      // Create comprehensive CSV content
       const csvContent = [
-        // Header
-        ['Hospital Monitoring Data Export'],
+        // Header Section
+        ['HOSPITAL MONITORING SYSTEM - DATA EXPORT'],
+        ['='.repeat(50)],
         ['Exported on:', formattedTimestamp],
         ['Hospital:', exportData.currentHospital],
+        ['Filter:', exportData.filterType],
+        ['Total Records:', exportData.voltaseListrik.historical?.length || 0],
         [''],
-        ['Parameter', 'Current Value', 'Maximum Value', 'Unit', 'Status'],
-        // Data rows
+
+        // Summary Section
+        ['CURRENT VALUES SUMMARY'],
+        ['-'.repeat(30)],
+        ['Parameter', 'Current Value', 'Unit', 'Status', 'Max Threshold'],
         [
           'Daya Listrik',
-          exportData.voltaseListrik.current,
-          exportData.voltaseListrik.max,
-          'V',
-          exportData.voltaseListrik.current > exportData.voltaseListrik.max * 0.8 ? 'High' : 'Normal'
+          safeToFixed(exportData.voltaseListrik.current, 2),
+          'Volt',
+          safeNumber(exportData.voltaseListrik.current) > 450
+            ? 'HIGH'
+            : safeNumber(exportData.voltaseListrik.current) < 300
+              ? 'LOW'
+              : 'NORMAL',
+          exportData.voltaseListrik.max || 500
         ],
         [
           'Debit Air',
-          exportData.debitAir.current,
-          exportData.debitAir.max,
+          safeToFixed(exportData.debitAir.current, 2),
           'L/min',
-          exportData.debitAir.current > exportData.debitAir.max * 0.8 ? 'High' : 'Normal'
+          safeNumber(exportData.debitAir.current) > 80
+            ? 'HIGH'
+            : safeNumber(exportData.debitAir.current) < 20
+              ? 'LOW'
+              : 'NORMAL',
+          exportData.debitAir.max || 100
         ],
         [
           'Jumlah Pasien',
-          exportData.jumlahPasien.current,
-          exportData.jumlahPasien.max,
+          safeNumber(exportData.jumlahPasien.current),
           'Orang',
-          exportData.jumlahPasien.current > exportData.jumlahPasien.max * 0.8 ? 'High' : 'Normal'
+          safeNumber(exportData.jumlahPasien.current) > 40
+            ? 'HIGH'
+            : safeNumber(exportData.jumlahPasien.current) < 10
+              ? 'LOW'
+              : 'NORMAL',
+          exportData.jumlahPasien.max || 50
+        ],
+        [
+          'pH Level',
+          safeToFixed(exportData.ph?.current, 2),
+          'pH',
+          (() => {
+            const phVal = safeNumber(exportData.ph?.current);
+            return phVal < 6.5 ? 'ASAM' : phVal > 8.5 ? 'BASA' : 'NORMAL';
+          })(),
+          '6.5-8.5 (Normal Range)'
         ],
         [''],
-        ['Historical Data (Last 10 entries):'],
-        ['Timestamp', 'Daya Listrik (V)', 'Debit Air (L/min)', 'Jumlah Pasien (Orang)']
+
+        // Statistical Analysis
+        ['STATISTICAL ANALYSIS'],
+        ['-'.repeat(25)],
+        ['Parameter', 'Average', 'Minimum', 'Maximum', 'Standard Dev']
       ];
 
-      // Add historical data (last 10 entries)
-      const historyLength = Math.min(10, exportData.voltaseListrik.historical.length);
-      for (
-        let i = exportData.voltaseListrik.historical.length - historyLength;
-        i < exportData.voltaseListrik.historical.length;
-        i++
-      ) {
-        const voltaseEntry = exportData.voltaseListrik.historical[i];
-        const debitEntry = exportData.debitAir.historical[i];
-        const pasienEntry = exportData.jumlahPasien.historical[i];
+      // Calculate statistics if historical data exists
+      if (exportData.voltaseListrik?.historical && exportData.voltaseListrik.historical.length > 0) {
+        const calculateStats = (data: any[]) => {
+          const values = data.map((item) => safeNumber(item.value)).filter((val) => !isNaN(val));
+          if (values.length === 0) {
+            return { avg: '0.00', min: '0.00', max: '0.00', stdDev: '0.00' };
+          }
+          const avg = values.reduce((a, b) => a + b, 0) / values.length;
+          const min = Math.min(...values);
+          const max = Math.max(...values);
+          const stdDev = Math.sqrt(values.reduce((sq, n) => sq + Math.pow(n - avg, 2), 0) / values.length);
+          return {
+            avg: safeToFixed(avg, 2),
+            min: safeToFixed(min, 2),
+            max: safeToFixed(max, 2),
+            stdDev: safeToFixed(stdDev, 2)
+          };
+        };
 
-        const timestamp = new Date(voltaseEntry.timestamp);
-        const formattedTimestamp = `${timestamp.getDate().toString().padStart(2, '0')}/${(timestamp.getMonth() + 1).toString().padStart(2, '0')}/${timestamp.getFullYear()} ${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`;
+        const voltageStats = calculateStats(exportData.voltaseListrik.historical || []);
+        const waterStats = calculateStats(exportData.debitAir.historical || []);
+        const patientStats = calculateStats(exportData.jumlahPasien.historical || []);
+        const phStats = exportData.ph?.historical ? calculateStats(exportData.ph.historical) : null;
 
-        csvContent.push([formattedTimestamp, voltaseEntry.value, debitEntry?.value || '-', pasienEntry?.value || '-']);
+        csvContent.push(
+          ['Daya Listrik (V)', voltageStats.avg, voltageStats.min, voltageStats.max, voltageStats.stdDev],
+          ['Debit Air (L/min)', waterStats.avg, waterStats.min, waterStats.max, waterStats.stdDev],
+          ['Jumlah Pasien', patientStats.avg, patientStats.min, patientStats.max, patientStats.stdDev],
+          ['pH Level', phStats?.avg || 'N/A', phStats?.min || 'N/A', phStats?.max || 'N/A', phStats?.stdDev || 'N/A']
+        );
       }
 
-      // Convert to CSV string
+      csvContent.push(
+        [''],
+        ['DETAILED HISTORICAL DATA'],
+        ['-'.repeat(30)],
+        ['No', 'Timestamp', 'Daya Listrik (V)', 'Debit Air (L/min)', 'Jumlah Pasien', 'pH Level', 'Notes']
+      );
+
+      // Add all historical data
+      if (exportData.voltaseListrik?.historical && exportData.voltaseListrik.historical.length > 0) {
+        exportData.voltaseListrik.historical.forEach((voltageEntry: any, index: number) => {
+          const waterEntry = exportData.debitAir?.historical?.[index];
+          const patientEntry = exportData.jumlahPasien?.historical?.[index];
+          const phEntry = exportData.ph?.historical?.[index];
+
+          const timestamp = new Date(voltageEntry.timestamp);
+          const formattedTimestamp = `${timestamp.getDate().toString().padStart(2, '0')}/${(timestamp.getMonth() + 1).toString().padStart(2, '0')}/${timestamp.getFullYear()} ${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}`;
+
+          // Generate notes based on values
+          const notes = [];
+          const voltageVal = safeNumber(voltageEntry.value);
+          const waterVal = safeNumber(waterEntry?.value);
+          const patientVal = safeNumber(patientEntry?.value);
+          const phVal = safeNumber(phEntry?.value);
+
+          if (voltageVal > 450) notes.push('High Voltage');
+          if (voltageVal < 300) notes.push('Low Voltage');
+          if (waterVal < 20) notes.push('Low Water Flow');
+          if (patientVal > 40) notes.push('High Patient Count');
+          if (phVal < 6.5) notes.push('Acidic pH');
+          if (phVal > 8.5) notes.push('Basic pH');
+
+          csvContent.push([
+            index + 1,
+            formattedTimestamp,
+            safeToFixed(voltageVal, 2),
+            waterVal > 0 ? safeToFixed(waterVal, 2) : '-',
+            patientVal > 0 ? patientVal : '-',
+            phVal > 0 ? safeToFixed(phVal, 2) : '-',
+            notes.join('; ') || 'Normal'
+          ]);
+        });
+      } else {
+        csvContent.push(['No historical data available']);
+      }
+
+      // Convert to CSV string with proper formatting
       const csvString = csvContent
         .map((row) =>
-          row.map((cell) => (typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell)).join(',')
+          row
+            .map((cell) => {
+              const cellStr = String(cell);
+              return cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')
+                ? `"${cellStr.replace(/"/g, '""')}"`
+                : cellStr;
+            })
+            .join(',')
         )
         .join('\n');
 
       // Create and download file
-      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel compatibility
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute(
-        'download',
-        `hospital_monitoring_${exportData.currentHospital.replace(/\s+/g, '_')}_${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}_${timestamp.getHours().toString().padStart(2, '0')}${timestamp.getMinutes().toString().padStart(2, '0')}.csv`
-      );
+
+      const hospitalCode = currentHospital.value.id || 'Hospital';
+      const filterSuffix = selectedTimeFilter.value.value === 'custom' ? 'Custom' : selectedTimeFilter.value.value;
+      const fileName = `MonitoringData_${hospitalCode}_${filterSuffix}_${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}_${timestamp.getHours().toString().padStart(2, '0')}${timestamp.getMinutes().toString().padStart(2, '0')}.csv`;
+
+      link.setAttribute('download', fileName);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-      console.log('📥 Data exported successfully');
+      console.log(`📥 Data exported successfully: ${fileName}`);
     } catch (error) {
       console.error('❌ Export failed:', error);
     } finally {
-      // Resume data updates after 2 seconds
+      // Resume data updates after 3 seconds
       setTimeout(() => {
         resumeDataUpdates();
-      }, 2000);
+      }, 3000);
     }
   };
 
@@ -931,9 +1120,11 @@ export const useDashboard = () => {
   }));
 
   // Methods
-  const updateTimeFilter = (filterValue: TimeFilter) => {
+  const updateTimeFilter = async (filterValue: TimeFilter) => {
     selectedTimeFilter.value = filterValue;
-    data.value = generateDashboardData(filterValue.value);
+
+    // Load data based on filter
+    await loadDataByFilter();
   };
 
   const toggleRealTime = () => {
@@ -1090,10 +1281,6 @@ export const useDashboard = () => {
     switchHospital,
     // Export functionality
     exportToExcel,
-    exportToPDF,
-    exportToImage,
-    pauseDataForExport,
-    resumeDataUpdates,
     isDataPaused,
     // Database functionality
     dbLoading,

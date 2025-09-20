@@ -109,59 +109,6 @@
                       <UIcon name="i-heroicons-table-cells" class="mr-2" />
                       Export Excel
                     </UButton>
-
-                    <!-- PDF Export -->
-                    <UButton
-                      variant="ghost"
-                      color="neutral"
-                      size="sm"
-                      @click="exportToPDF"
-                      :disabled="isDataPaused"
-                      class="w-full justify-start"
-                    >
-                      <UIcon name="i-heroicons-document-text" class="mr-2" />
-                      Export PDF
-                    </UButton>
-
-                    <!-- Image Export -->
-                    <UButton
-                      variant="ghost"
-                      color="neutral"
-                      size="sm"
-                      @click="exportToImage"
-                      :disabled="isDataPaused"
-                      class="w-full justify-start"
-                    >
-                      <UIcon name="i-heroicons-photo" class="mr-2" />
-                      Export Image
-                    </UButton>
-
-                    <!-- Separator -->
-                    <div class="my-1 border-t border-gray-200"></div>
-
-                    <!-- Test Hospital Data -->
-                    <UButton
-                      variant="ghost"
-                      color="primary"
-                      size="sm"
-                      @click="publishTestData"
-                      class="w-full justify-start"
-                    >
-                      <UIcon name="i-heroicons-beaker" class="mr-2" />
-                      Test Hospital Data
-                    </UButton>
-
-                    <!-- Test pH Data -->
-                    <UButton
-                      variant="ghost"
-                      color="secondary"
-                      size="sm"
-                      @click="publishTestPhData"
-                      class="w-full justify-start"
-                    >
-                      <UIcon name="i-heroicons-flask" class="mr-2" />
-                      Test pH Data
-                    </UButton>
                   </div>
                 </div>
               </template>
@@ -352,8 +299,6 @@ const {
   switchHospital,
   // Export functionality
   exportToExcel,
-  exportToPDF,
-  exportToImage,
   isDataPaused
 } = useDashboard();
 
