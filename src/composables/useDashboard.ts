@@ -1010,7 +1010,7 @@ export const useDashboard = () => {
       tooltip: { enabled: false },
       yAxis: {
         min: 0,
-        max: data.value.ph?.max || 14,
+        max: data.value.ph.max,
         stops: [
           [0.1, 'rgb(168, 85, 247)'], // bright purple for pH
           [0.5, 'rgb(168, 85, 247)'], // bright purple for pH
@@ -1038,8 +1038,8 @@ export const useDashboard = () => {
       series: [
         {
           name: 'pH Level',
-          data: [data.value.ph?.current || 7.0],
-          color: data.value.ph?.color || '#a855f7'
+          data: [data.value.ph.current],
+          color: data.value.ph.color
         }
       ]
     }
@@ -1114,7 +1114,7 @@ export const useDashboard = () => {
       {
         name: 'pH',
         color: 'rgb(168, 85, 247)', // bright purple for pH
-        data: data.value.ph?.historical?.map((point) => [point.timestamp, point.value]) || []
+        data: data.value.ph.historical.map((point) => [point.timestamp, point.value])
       }
     ]
   }));
@@ -1152,18 +1152,21 @@ export const useDashboard = () => {
       data.value.voltaseListrik.current = updates.voltaseListrik?.current || data.value.voltaseListrik.current;
       data.value.debitAir.current = updates.debitAir?.current || data.value.debitAir.current;
       data.value.jumlahPasien.current = updates.jumlahPasien?.current || data.value.jumlahPasien.current;
+      data.value.ph.current = updates.ph?.current || data.value.ph.current;
 
       // Add new data point to historical data
       const now = Date.now();
       data.value.voltaseListrik.historical.push({ timestamp: now, value: data.value.voltaseListrik.current });
       data.value.debitAir.historical.push({ timestamp: now, value: data.value.debitAir.current });
       data.value.jumlahPasien.historical.push({ timestamp: now, value: data.value.jumlahPasien.current });
+      data.value.ph.historical.push({ timestamp: now, value: data.value.ph.current });
 
       // Keep only last 100 points for performance
       if (data.value.voltaseListrik.historical.length > 100) {
         data.value.voltaseListrik.historical = data.value.voltaseListrik.historical.slice(-100);
         data.value.debitAir.historical = data.value.debitAir.historical.slice(-100);
         data.value.jumlahPasien.historical = data.value.jumlahPasien.historical.slice(-100);
+        data.value.ph.historical = data.value.ph.historical.slice(-100);
       }
     }, 5000) as any; // Update every 5 seconds
   };
@@ -1238,7 +1241,7 @@ export const useDashboard = () => {
           data.value.ph.historical.shift();
         }
 
-        console.log('📊 Real-time pH data updated from MQTT');
+        console.log('📊 Real-time pH data updated from MQTT:', newPhData);
       }
     }
   });

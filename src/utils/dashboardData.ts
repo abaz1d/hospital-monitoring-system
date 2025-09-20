@@ -21,7 +21,7 @@ export interface DashboardData {
     color: string;
     historical: Array<{ timestamp: number; value: number }>;
   };
-  ph?: {
+  ph: {
     current: number;
     max: number;
     unit: string;
@@ -100,6 +100,13 @@ export function generateDashboardData(timeFilter: string = 'day'): DashboardData
       unit: 'orang',
       color: 'rgb(34, 197, 94)', // bright green for high contrast
       historical: generateHistoricalData(100, 30, points, filter.hours)
+    },
+    ph: {
+      current: Math.round((6.5 + Math.random() * 2) * 100) / 100, // pH range 6.5-8.5
+      max: 14,
+      unit: 'pH',
+      color: 'rgb(168, 85, 247)', // bright purple for pH
+      historical: generateHistoricalData(7.2, 0.8, points, filter.hours)
     }
   };
 }
@@ -126,6 +133,13 @@ export function getRealtimeUpdate(): Partial<DashboardData> {
       max: 200,
       unit: 'Orang',
       color: 'rgb(34, 197, 94)', // bright green for high contrast
+      historical: []
+    },
+    ph: {
+      current: Math.round((6.5 + Math.random() * 2) * 100) / 100, // pH range 6.5-8.5
+      max: 14,
+      unit: 'pH',
+      color: 'rgb(168, 85, 247)', // bright purple for pH
       historical: []
     }
   };
