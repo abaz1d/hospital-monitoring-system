@@ -124,7 +124,7 @@
         <UCard class="flex flex-1 flex-col">
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-base leading-6 font-semibold text-gray-900">Pilih Rumah Sakit</h3>
+              <h3 class="text-base leading-6 font-semibold text-gray-900"></h3>
               <UButton
                 color="neutral"
                 variant="ghost"
@@ -134,7 +134,7 @@
             </div>
           </template>
 
-          <div class="flex-1 space-y-2">
+          <div class="max-h-[calc(100vh-150px)] flex-1 space-y-2 overflow-y-auto">
             <!-- Hospital List -->
             <div
               v-for="hospital in hospitals"
