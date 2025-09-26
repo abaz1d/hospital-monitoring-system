@@ -40,12 +40,11 @@ export const useMqtt = () => {
 
   // Hospital list configuration
   const hospitals = ref<Hospital[]>([
-    { id: 'rs-a', name: 'RSUD Bendan - Ruang IBS', topic: '/ruangMawar', isActive: true },
-    { id: 'rs-b', name: 'RSUD Bendan - Ruang VIP', topic: '/ruangMelati', isActive: true },
-    { id: 'rs-c', name: 'RSUD Bendan - Ruang Gizi', topic: '/ruangGizi', isActive: false },
-    { id: 'rs-d', name: 'RSUD Bendan - Ruang Laundry', topic: '/ruangLaundry', isActive: false },
-    { id: 'rs-e', name: 'RSUD Bendan - Ruang Buketan', topic: '/ruangBuketan', isActive: false },
-    { id: 'rs-f', name: 'RSUD Bendan - PH', topic: '/PH', isActive: false }
+    { id: 'rs-a', name: 'RSUD Bendan - Ruang IBS', topic: '/ruangIBS', isActive: false },
+    { id: 'rs-b', name: 'RSUD Bendan - Ruang VIP', topic: '/ruangVIP', isActive: false },
+    { id: 'rs-c', name: 'RSUD Bendan - Ruang Gizi', topic: '/ruangGizi', isActive: true },
+    { id: 'rs-d', name: 'RSUD Bendan - Ruang Laundry', topic: '/ruangLaundry', isActive: true },
+    { id: 'rs-e', name: 'RSUD Bendan - Ruang Buketan', topic: '/ruangBuketan', isActive: false }
   ]);
 
   const currentHospital = ref<Hospital>(hospitals.value[0]);
