@@ -57,8 +57,8 @@ CREATE INDEX IF NOT EXISTS idx_ph_hospital_time ON ph_readings(hospital_id, reco
 
 -- 4. Insert sample hospitals
 INSERT INTO hospitals (hospital_code, hospital_name, mqtt_topic, location) VALUES
-('rs-a', 'RSUD Bendan - Ruang Jlamprang', '/ruangMawar', 'Gedung A Lantai 2'),
-('rs-b', 'RSUD Bendan - Ruang Truntum', '/ruangMelati', 'Gedung B Lantai 1')
+('rs-a', 'RSUD Bendan - Ruang IBS', '/ruangMawar', 'Gedung A Lantai 2'),
+('rs-b', 'RSUD Bendan - Ruang VIP', '/ruangMelati', 'Gedung B Lantai 1')
 ON CONFLICT (hospital_code) DO NOTHING;
 
 -- 5. Insert sample data for testing
