@@ -44,7 +44,8 @@ export const useMqtt = () => {
     { id: 'rs-b', name: 'RSUD Bendan - Ruang VIP', topic: '/ruangVIP', isActive: false },
     { id: 'rs-c', name: 'RSUD Bendan - Ruang Gizi', topic: '/ruangGizi', isActive: true },
     { id: 'rs-d', name: 'RSUD Bendan - Ruang Laundry', topic: '/ruangLaundry', isActive: true },
-    { id: 'rs-e', name: 'RSUD Bendan - Ruang Buketan', topic: '/ruangBuketan', isActive: false }
+    { id: 'rs-e', name: 'RSUD Bendan - Ruang Buketan', topic: '/ruangBuketan', isActive: false },
+    { id: 'rs-f', name: 'RSUD Bendan - Ruang Pemanfaatan IPAL', topic: '/ruangPemanfaatanIPAL', isActive: false }
   ]);
 
   const currentHospital = ref<Hospital>(hospitals.value[0]);
