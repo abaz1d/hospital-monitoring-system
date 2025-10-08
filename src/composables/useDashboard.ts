@@ -1,11 +1,5 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import {
-  generateDashboardData,
-  getRealtimeUpdate,
-  timeFilters,
-  type DashboardData,
-  type TimeFilter
-} from '~/utils/dashboardData';
+import { generateDashboardData, timeFilters, type DashboardData, type TimeFilter } from '~/utils/dashboardData';
 import { useDatabase } from './useDatabase';
 import { useMqtt } from './useMqtt';
 
@@ -166,7 +160,7 @@ export const useDashboard = () => {
         historical: convertToChartSeries(dbData.pasien, 'Jumlah Pasien')
       },
       ph: {
-        current: Number(dbData.ph[dbData.ph.length - 1]?.value || 7.0),
+        current: Number(dbData.ph[dbData.ph.length - 1]?.value || 0),
         max: 14,
         unit: 'pH',
         color: '#8b5cf6',
@@ -1140,35 +1134,13 @@ export const useDashboard = () => {
 
   const startRealTimeUpdates = () => {
     if (useMqttData.value) {
-      console.log('⏭️ Skipping dummy updates - using MQTT data');
+      console.log('⏭️ Using MQTT data - no dummy updates needed');
       return; // Don't start dummy updates if using MQTT
     }
 
-    if (refreshInterval.value) clearInterval(refreshInterval.value);
-
-    refreshInterval.value = setInterval(() => {
-      const updates = getRealtimeUpdate();
-      // Update current values for gauges
-      data.value.voltaseListrik.current = updates.voltaseListrik?.current || data.value.voltaseListrik.current;
-      data.value.debitAir.current = updates.debitAir?.current || data.value.debitAir.current;
-      data.value.jumlahPasien.current = updates.jumlahPasien?.current || data.value.jumlahPasien.current;
-      data.value.ph.current = updates.ph?.current || data.value.ph.current;
-
-      // Add new data point to historical data
-      const now = Date.now();
-      data.value.voltaseListrik.historical.push({ timestamp: now, value: data.value.voltaseListrik.current });
-      data.value.debitAir.historical.push({ timestamp: now, value: data.value.debitAir.current });
-      data.value.jumlahPasien.historical.push({ timestamp: now, value: data.value.jumlahPasien.current });
-      data.value.ph.historical.push({ timestamp: now, value: data.value.ph.current });
-
-      // Keep only last 100 points for performance
-      if (data.value.voltaseListrik.historical.length > 100) {
-        data.value.voltaseListrik.historical = data.value.voltaseListrik.historical.slice(-100);
-        data.value.debitAir.historical = data.value.debitAir.historical.slice(-100);
-        data.value.jumlahPasien.historical = data.value.jumlahPasien.historical.slice(-100);
-        data.value.ph.historical = data.value.ph.historical.slice(-100);
-      }
-    }, 5000) as any; // Update every 5 seconds
+    console.log('📊 Real-time mode active - waiting for MQTT data or database load');
+    // In real-time mode, data will remain 0 until MQTT updates or database loads
+    // This ensures clean initial state
   };
 
   const stopRealTimeUpdates = () => {

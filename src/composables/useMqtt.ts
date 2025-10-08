@@ -32,7 +32,7 @@ export const useMqtt = () => {
 
   // Separate pH data (global sensor)
   const phData = ref<{ ph: number; timestamp: number }>({
-    ph: 7.0, // Default pH value
+    ph: 0, // Start with 0, will be updated by MQTT
     timestamp: Date.now()
   });
 
