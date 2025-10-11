@@ -56,43 +56,102 @@ CREATE INDEX IF NOT EXISTS idx_patient_hospital_time ON patient_readings(hospita
 CREATE INDEX IF NOT EXISTS idx_ph_hospital_time ON ph_readings(hospital_id, recorded_at DESC);
 
 -- 4. Insert sample hospitals
-INSERT INTO hospitals (hospital_code, hospital_name, mqtt_topic, location) VALUES
-('rs-c', 'RSUD Bendan - Ruang Gizi', '/ruangGizi', 'Gedung A Lantai 2'),
-('rs-d', 'RSUD Bendan - Ruang Laundry', '/ruangLaundry', 'Gedung B Lantai 1')
+INSERT INTO hospitals (hospital_code, hospital_name, mqtt_topic, location, is_active) VALUES
+('rs-a', 'RSUD Bendan - Ruang Jlamprang', '/ruangMawar', 'Gedung A Lantai 1', true),
+('rs-b', 'RSUD Bendan - Ruang Truntum', '/ruangMelati', 'Gedung A Lantai 2', true),
+('rs-c', 'RSUD Bendan - Ruang Anggrek', '/ruangAnggrek', 'Gedung B Lantai 1', false),
+('rs-d', 'RSUD Bendan - Ruang Dahlia', '/ruangDahlia', 'Gedung B Lantai 2', false),
+('rs-e', 'RSUD Bendan - Ruang Kenanga', '/ruangKenanga', 'Gedung C Lantai 1', false)
 ON CONFLICT (hospital_code) DO NOTHING;
 
 -- 5. Insert sample data for testing
 INSERT INTO electricity_readings (hospital_id, voltage_value, recorded_at) VALUES
+-- RS-A data
 (1, 245.50, NOW() - INTERVAL '1 hour'),
 (1, 247.20, NOW() - INTERVAL '30 minutes'),
 (1, 250.10, NOW()),
+-- RS-B data
 (2, 230.80, NOW() - INTERVAL '1 hour'),
 (2, 235.60, NOW() - INTERVAL '30 minutes'),
-(2, 240.30, NOW());
+(2, 240.30, NOW()),
+-- RS-C data
+(3, 220.50, NOW() - INTERVAL '1 hour'),
+(3, 225.20, NOW() - INTERVAL '30 minutes'),
+(3, 230.10, NOW()),
+-- RS-D data
+(4, 210.80, NOW() - INTERVAL '1 hour'),
+(4, 215.60, NOW() - INTERVAL '30 minutes'),
+(4, 220.30, NOW()),
+-- RS-E data
+(5, 200.50, NOW() - INTERVAL '1 hour'),
+(5, 205.20, NOW() - INTERVAL '30 minutes'),
+(5, 210.10, NOW());
 
 INSERT INTO water_readings (hospital_id, flow_rate, recorded_at) VALUES
+-- RS-A data
 (1, 35.5, NOW() - INTERVAL '1 hour'),
 (1, 37.2, NOW() - INTERVAL '30 minutes'),
 (1, 38.8, NOW()),
+-- RS-B data
 (2, 28.4, NOW() - INTERVAL '1 hour'),
 (2, 30.1, NOW() - INTERVAL '30 minutes'),
-(2, 32.5, NOW());
+(2, 32.5, NOW()),
+-- RS-C data
+(3, 25.5, NOW() - INTERVAL '1 hour'),
+(3, 27.2, NOW() - INTERVAL '30 minutes'),
+(3, 28.8, NOW()),
+-- RS-D data
+(4, 22.4, NOW() - INTERVAL '1 hour'),
+(4, 24.1, NOW() - INTERVAL '30 minutes'),
+(4, 25.5, NOW()),
+-- RS-E data
+(5, 18.5, NOW() - INTERVAL '1 hour'),
+(5, 20.2, NOW() - INTERVAL '30 minutes'),
+(5, 21.8, NOW());
 
 INSERT INTO patient_readings (hospital_id, patient_count, recorded_at) VALUES
+-- RS-A data
 (1, 85, NOW() - INTERVAL '1 hour'),
 (1, 92, NOW() - INTERVAL '30 minutes'),
 (1, 105, NOW()),
+-- RS-B data
 (2, 45, NOW() - INTERVAL '1 hour'),
 (2, 48, NOW() - INTERVAL '30 minutes'),
-(2, 52, NOW());
+(2, 52, NOW()),
+-- RS-C data
+(3, 35, NOW() - INTERVAL '1 hour'),
+(3, 38, NOW() - INTERVAL '30 minutes'),
+(3, 42, NOW()),
+-- RS-D data
+(4, 25, NOW() - INTERVAL '1 hour'),
+(4, 28, NOW() - INTERVAL '30 minutes'),
+(4, 32, NOW()),
+-- RS-E data
+(5, 15, NOW() - INTERVAL '1 hour'),
+(5, 18, NOW() - INTERVAL '30 minutes'),
+(5, 22, NOW());
 
 INSERT INTO ph_readings (hospital_id, ph_value, recorded_at) VALUES
+-- RS-A data
 (1, 7.2, NOW() - INTERVAL '1 hour'),
 (1, 7.0, NOW() - INTERVAL '30 minutes'),
 (1, 6.8, NOW()),
+-- RS-B data
 (2, 7.5, NOW() - INTERVAL '1 hour'),
 (2, 7.3, NOW() - INTERVAL '30 minutes'),
-(2, 7.1, NOW());
+(2, 7.1, NOW()),
+-- RS-C data
+(3, 6.8, NOW() - INTERVAL '1 hour'),
+(3, 6.9, NOW() - INTERVAL '30 minutes'),
+(3, 7.0, NOW()),
+-- RS-D data
+(4, 7.8, NOW() - INTERVAL '1 hour'),
+(4, 7.6, NOW() - INTERVAL '30 minutes'),
+(4, 7.4, NOW()),
+-- RS-E data
+(5, 8.1, NOW() - INTERVAL '1 hour'),
+(5, 7.9, NOW() - INTERVAL '30 minutes'),
+(5, 7.7, NOW());
 
 -- 6. Verify data
 SELECT 'Hospitals' as table_name, COUNT(*) as record_count FROM hospitals

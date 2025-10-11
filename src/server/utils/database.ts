@@ -36,10 +36,7 @@ export async function saveSensorDataToDatabase(
   try {
     await client.query('BEGIN');
 
-    const hospitalResult = await client.query(
-      'SELECT id FROM hospitals WHERE hospital_code = $1 AND is_active = true',
-      [hospitalCode]
-    );
+    const hospitalResult = await client.query('SELECT id FROM hospitals WHERE hospital_code = $1', [hospitalCode]);
 
     if (hospitalResult.rows.length === 0) {
       throw new Error(`Hospital with code ${hospitalCode} not found`);
@@ -91,10 +88,7 @@ export async function getHistoricalData(hospitalCode: string, hours: number = 24
   const client = await pool.connect();
 
   try {
-    const hospitalResult = await client.query(
-      'SELECT id FROM hospitals WHERE hospital_code = $1 AND is_active = true',
-      [hospitalCode]
-    );
+    const hospitalResult = await client.query('SELECT id FROM hospitals WHERE hospital_code = $1', [hospitalCode]);
 
     if (hospitalResult.rows.length === 0) {
       throw new Error(`Hospital with code ${hospitalCode} not found`);
@@ -141,10 +135,7 @@ export async function getHistoricalDataByDateRange(hospitalCode: string, startDa
   const client = await pool.connect();
 
   try {
-    const hospitalResult = await client.query(
-      'SELECT id FROM hospitals WHERE hospital_code = $1 AND is_active = true',
-      [hospitalCode]
-    );
+    const hospitalResult = await client.query('SELECT id FROM hospitals WHERE hospital_code = $1', [hospitalCode]);
 
     if (hospitalResult.rows.length === 0) {
       throw new Error(`Hospital with code ${hospitalCode} not found`);
@@ -236,9 +227,16 @@ export async function getAllHospitals() {
   const client = await pool.connect();
 
   try {
-    const result = await client.query(
-      'SELECT hospital_code as id, hospital_name as name, mqtt_topic as topic, location FROM hospitals WHERE is_active = true ORDER BY hospital_name'
-    );
+    const result = await client.query(`
+      SELECT 
+        hospital_code as id, 
+        hospital_name as name, 
+        mqtt_topic as topic, 
+        location,
+        is_active as "isActive"
+      FROM hospitals 
+      ORDER BY hospital_code ASC
+    `);
 
     return result.rows;
   } catch (error) {

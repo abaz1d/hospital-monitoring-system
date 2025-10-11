@@ -1,5 +1,5 @@
 import mqtt, { type MqttClient } from 'mqtt';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 interface MqttMessage {
   electricity: number;
@@ -38,18 +38,43 @@ export const useMqtt = () => {
 
   const error = ref<string | null>(null);
 
-  // Hospital list configuration
-  const hospitals = ref<Hospital[]>([
-    { id: 'rs-a', name: 'RSUD Bendan - Ruang IBS', topic: '/ruangIBS', isActive: false },
-    { id: 'rs-b', name: 'RSUD Bendan - Ruang VIP', topic: '/ruangVIP', isActive: false },
-    { id: 'rs-c', name: 'RSUD Bendan - Ruang Gizi', topic: '/ruangGizi', isActive: true },
-    { id: 'rs-d', name: 'RSUD Bendan - Ruang Laundry', topic: '/ruangLaundry', isActive: true },
-    { id: 'rs-e', name: 'RSUD Bendan - Ruang Buketan', topic: '/ruangBuketan', isActive: false },
-    { id: 'rs-f', name: 'RSUD Bendan - Ruang Pemanfaatan IPAL', topic: '/ruangPemanfaatanIPAL', isActive: false }
-  ]);
+  // Hospital list - will be loaded from database
+  const hospitals = ref<Hospital[]>([]);
+  const isLoadingHospitals = ref(false);
 
-  const currentHospital = ref<Hospital>(hospitals.value[0]);
-  const currentTopic = ref(currentHospital.value.topic);
+  // Load hospitals from database
+  const loadHospitals = async () => {
+    if (isLoadingHospitals.value) return;
+
+    isLoadingHospitals.value = true;
+    try {
+      const response = await $fetch('/api/hospitals');
+      if (response.success && response.data) {
+        hospitals.value = response.data;
+        console.log('✅ Hospitals loaded from database:', hospitals.value.length);
+
+        // Set default hospital to first active one
+        if (hospitals.value.length > 0 && !currentHospital.value?.id) {
+          const firstActive = hospitals.value.find((h) => h.isActive) || hospitals.value[0];
+          currentHospital.value = firstActive;
+          console.log('🏥 Default hospital set to:', firstActive.name);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to load hospitals:', error);
+      // Fallback to default if API fails
+      hospitals.value = [
+        { id: 'rs-a', name: 'RSUD Bendan - Ruang Jlamprang', topic: '/ruangMawar', isActive: true },
+        { id: 'rs-b', name: 'RSUD Bendan - Ruang Truntum', topic: '/ruangMelati', isActive: true }
+      ];
+      currentHospital.value = hospitals.value[0];
+    } finally {
+      isLoadingHospitals.value = false;
+    }
+  };
+
+  const currentHospital = ref<Hospital>({ id: '', name: '', topic: '', isActive: false });
+  const currentTopic = computed(() => currentHospital.value.topic);
 
   // MQTT Configuration - using SSL connection to HiveMQ
   const mqttConfig = {
@@ -237,9 +262,8 @@ export const useMqtt = () => {
         }
       });
 
-      // Update current hospital and topic
+      // Update current hospital (topic will be automatically updated via computed)
       currentHospital.value = hospital;
-      currentTopic.value = hospital.topic;
 
       // Subscribe to new topic
       client.value.subscribe(currentTopic.value, (err) => {
@@ -259,9 +283,8 @@ export const useMqtt = () => {
         timestamp: Date.now()
       };
     } else {
-      // If not connected, just update the hospital for when connection is established
+      // If not connected, just update the hospital (topic will be automatically updated via computed)
       currentHospital.value = hospital;
-      currentTopic.value = hospital.topic;
     }
   };
 
@@ -320,6 +343,8 @@ export const useMqtt = () => {
     hospitals,
     currentHospital,
     currentTopic,
+    isLoadingHospitals,
+    loadHospitals,
 
     // Methods
     connect,

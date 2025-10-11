@@ -20,7 +20,9 @@ export const useDashboard = () => {
     publishTestPhData, // pH test function
     hospitals,
     currentHospital,
-    switchHospital
+    switchHospital,
+    loadHospitals,
+    isLoadingHospitals
   } = useMqtt();
 
   // Database Integration
@@ -1220,6 +1222,9 @@ export const useDashboard = () => {
 
   // Lifecycle
   onMounted(async () => {
+    // Load hospitals from database first
+    await loadHospitals();
+
     if (isRealTimeEnabled.value && !useMqttData.value) {
       startRealTimeUpdates();
     }
@@ -1254,6 +1259,7 @@ export const useDashboard = () => {
     hospitals,
     currentHospital,
     switchHospital,
+    isLoadingHospitals,
     // Export functionality
     exportToExcel,
     isDataPaused,

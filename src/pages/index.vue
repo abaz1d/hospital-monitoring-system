@@ -134,9 +134,20 @@
             </div>
           </template>
 
-          <div class="max-h-[calc(100vh-150px)] flex-1 space-y-2 overflow-y-auto">
+          <div class="max-h-[calc(100vh-150px)] flex-1 space-y-2 overflow-y-auto px-1">
+            <!-- Loading State -->
+            <div v-if="isLoadingHospitals" class="flex items-center justify-center py-8">
+              <div class="text-center">
+                <div
+                  class="border-primary-200 border-t-primary-600 mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4"
+                ></div>
+                <p class="text-sm text-gray-500">Loading hospitals...</p>
+              </div>
+            </div>
+
             <!-- Hospital List -->
             <div
+              v-else
               v-for="hospital in hospitals"
               :key="hospital.id"
               @click="hospital.isActive ? selectHospital(hospital) : null"
@@ -170,6 +181,13 @@
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!isLoadingHospitals && hospitals.length === 0" class="py-8 text-center">
+              <UIcon name="i-heroicons-building-office-2" class="mx-auto h-12 w-12 text-gray-400" />
+              <h3 class="mt-2 text-sm font-medium text-gray-900">No hospitals found</h3>
+              <p class="mt-1 text-sm text-gray-500">No hospitals are available in the database.</p>
             </div>
 
             <!-- pH Gauge Section -->
@@ -297,6 +315,7 @@ const {
   hospitals,
   currentHospital,
   switchHospital,
+  isLoadingHospitals,
   // Export functionality
   exportToExcel,
   isDataPaused
