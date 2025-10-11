@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS hospitals (
     hospital_name VARCHAR(255) NOT NULL,
     mqtt_topic VARCHAR(100) UNIQUE NOT NULL,
     location VARCHAR(255),
+    kdbagian VARCHAR(50),
+    bagian_mapping TEXT[], -- Array of kdbagian codes to accumulate
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -55,14 +57,16 @@ CREATE INDEX IF NOT EXISTS idx_water_hospital_time ON water_readings(hospital_id
 CREATE INDEX IF NOT EXISTS idx_patient_hospital_time ON patient_readings(hospital_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_ph_hospital_time ON ph_readings(hospital_id, recorded_at DESC);
 
--- 4. Insert sample hospitals
-INSERT INTO hospitals (hospital_code, hospital_name, mqtt_topic, location, is_active) VALUES
-('rs-a', 'RSUD Bendan - Ruang Jlamprang', '/ruangMawar', 'Gedung A Lantai 1', true),
-('rs-b', 'RSUD Bendan - Ruang Truntum', '/ruangMelati', 'Gedung A Lantai 2', true),
-('rs-c', 'RSUD Bendan - Ruang Anggrek', '/ruangAnggrek', 'Gedung B Lantai 1', false),
-('rs-d', 'RSUD Bendan - Ruang Dahlia', '/ruangDahlia', 'Gedung B Lantai 2', false),
-('rs-e', 'RSUD Bendan - Ruang Kenanga', '/ruangKenanga', 'Gedung C Lantai 1', false)
-ON CONFLICT (hospital_code) DO NOTHING;
+-- 4. Insert sample hospitals with kdbagian mapping
+INSERT INTO hospitals (hospital_code, hospital_name, mqtt_topic, location, kdbagian, bagian_mapping, is_active) VALUES
+('rs-a', 'RSUD Bendan - Ruang Jlamprang', '/ruangMawar', 'Gedung A Lantai 1', 'RI04', ARRAY['RI04'], true),
+('rs-b', 'RSUD Bendan - Ruang Truntum', '/ruangMelati', 'Gedung A Lantai 2', 'RI02', ARRAY['RI02'], true),
+('rs-c', 'RSUD Bendan - Ruang Anggrek', '/ruangAnggrek', 'Gedung B Lantai 1', 'GIZI', ARRAY['RI07','RI01','RI03','RI20','RI04','RI02'], false),
+('rs-d', 'RSUD Bendan - Ruang Dahlia', '/ruangDahlia', 'Gedung B Lantai 2', 'LAUNDRY', ARRAY['RJ04','RI07','RI01','RI03','RI20','RI04','RI02','RI13','RI18','UR38'], false),
+('rs-e', 'RSUD Bendan - Ruang Kenanga', '/ruangKenanga', 'Gedung C Lantai 1', 'RJ04', ARRAY['RJ04'], false)
+ON CONFLICT (hospital_code) DO UPDATE SET
+    kdbagian = EXCLUDED.kdbagian,
+    bagian_mapping = EXCLUDED.bagian_mapping;
 
 -- 5. Insert sample data for testing
 INSERT INTO electricity_readings (hospital_id, voltage_value, recorded_at) VALUES

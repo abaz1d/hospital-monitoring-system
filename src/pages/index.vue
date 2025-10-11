@@ -1,5 +1,8 @@
 <template>
   <div class="dashboard-content min-h-screen bg-white">
+    <!-- Patient Data Loading Overlay -->
+    <PatientDataLoading :show="isPatientDataLoading" />
+
     <!-- Header -->
     <div class="sticky top-0 z-50 border-b border-gray-200">
       <div class="w-full bg-blue-500 p-1 text-center text-xl font-bold text-white">
@@ -73,9 +76,17 @@
             </div>
 
             <!-- Refresh Button -->
-            <UButton variant="outline" color="neutral" @click="refreshData" size="sm" class="flex-shrink-0">
-              <UIcon name="i-heroicons-arrow-path" />
-              <span class="ml-1">Refresh</span>
+            <UButton
+              variant="outline"
+              color="neutral"
+              @click="handleRefreshData"
+              size="sm"
+              class="flex-shrink-0"
+              :loading="isRefreshing"
+              :disabled="isRefreshing"
+            >
+              <UIcon name="i-heroicons-arrow-path" :class="{ 'animate-spin': isRefreshing }" />
+              <span class="ml-1">{{ isRefreshing ? 'Refreshing...' : 'Refresh' }}</span>
             </UButton>
 
             <!-- Export Button with Popover -->
@@ -102,8 +113,9 @@
                       variant="ghost"
                       color="neutral"
                       size="sm"
-                      @click="exportToExcel"
-                      :disabled="isDataPaused"
+                      @click="handleExportToExcel"
+                      :disabled="isDataPaused || isExporting"
+                      :loading="isExporting"
                       class="w-full justify-start"
                     >
                       <UIcon name="i-heroicons-table-cells" class="mr-2" />
@@ -263,11 +275,36 @@
               </div>
 
               <!-- Jumlah Pasien Gauge -->
-              <div class="">
-                <h3 class="mb-2 text-center text-sm font-medium text-gray-700">Jumlah Pasien</h3>
+              <div class="relative">
+                <h3 class="mb-2 text-center text-sm font-medium text-gray-700">
+                  Jumlah Pasien
+                  <span v-if="isPatientDataLoading" class="ml-2 inline-flex items-center">
+                    <svg class="h-3 w-3 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  </span>
+                </h3>
                 <ClientOnly>
                   <highcharts :options="gaugeOptions.jumlahPasien" :style="{ height: '150px', width: '100%' }" />
                 </ClientOnly>
+
+                <!-- Loading overlay for patient data -->
+                <div
+                  v-if="isPatientDataLoading"
+                  class="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70"
+                >
+                  <div class="text-center">
+                    <div
+                      class="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-r-transparent"
+                    ></div>
+                    <p class="mt-2 text-xs text-gray-600">Updating...</p>
+                  </div>
+                </div>
               </div>
             </UCard>
           </div>
@@ -293,6 +330,8 @@
 </template>
 
 <script setup lang="ts">
+import PatientDataLoading from '~/components/PatientDataLoading.vue';
+
 const {
   data,
   selectedTimeFilter,
@@ -320,6 +359,64 @@ const {
   exportToExcel,
   isDataPaused
 } = useDashboard();
+
+// Real-time patient data
+const { isLoading: isPatientDataLoading, getPatientCount, getPatientBreakdown } = useRealTimePatients();
+
+// Loading states
+const isExporting = ref(false);
+const isRefreshing = ref(false);
+
+// Toast for notifications
+const toast = useToast();
+
+// Enhanced export function with loading
+const handleExportToExcel = async () => {
+  isExporting.value = true;
+  try {
+    await exportToExcel();
+    toast.add({
+      title: 'Export Berhasil',
+      description: 'Data telah berhasil diexport ke Excel',
+      icon: 'i-heroicons-check-circle',
+      color: 'success'
+    });
+  } catch (error) {
+    console.error('Export failed:', error);
+    toast.add({
+      title: 'Export Gagal',
+      description: 'Terjadi error saat export data',
+      icon: 'i-heroicons-x-circle',
+      color: 'error'
+    });
+  } finally {
+    isExporting.value = false;
+  }
+};
+
+// Enhanced refresh function with loading
+const handleRefreshData = async () => {
+  isRefreshing.value = true;
+  try {
+    await refreshData();
+    toast.add({
+      title: 'Data Diperbarui',
+      description: 'Data dashboard telah diperbarui',
+      icon: 'i-heroicons-arrow-path',
+      color: 'primary'
+    });
+  } catch (error) {
+    console.error('Refresh failed:', error);
+    toast.add({
+      title: 'Refresh Gagal',
+      description: 'Gagal memperbarui data',
+      icon: 'i-heroicons-x-circle',
+      color: 'error'
+    });
+  } finally {
+    isRefreshing.value = false;
+  }
+};
 
 // Slideover state
 const showHospitalList = ref(false);

@@ -227,20 +227,70 @@ export async function getAllHospitals() {
   const client = await pool.connect();
 
   try {
-    const result = await client.query(`
+    // First check if new columns exist
+    const columnCheck = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'hospitals' 
+      AND column_name IN ('kdbagian', 'bagian_mapping')
+    `);
+
+    const hasKdbagian = columnCheck.rows.some((row) => row.column_name === 'kdbagian');
+    const hasBagianMapping = columnCheck.rows.some((row) => row.column_name === 'bagian_mapping');
+
+    // Build query based on available columns
+    let query = `
       SELECT 
         hospital_code as id, 
         hospital_name as name, 
         mqtt_topic as topic, 
         location,
+        ${hasKdbagian ? 'kdbagian,' : 'NULL as kdbagian,'}
+        ${hasBagianMapping ? 'bagian_mapping,' : 'NULL as bagian_mapping,'}
         is_active as "isActive"
       FROM hospitals 
       ORDER BY hospital_code ASC
-    `);
+    `;
+
+    const result = await client.query(query);
 
     return result.rows;
   } catch (error) {
     console.error('❌ Error fetching hospitals:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function saveRealTimePatientData(hospitalCode: string, patientCount: number, date: string) {
+  const pool = getDatabase();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const hospitalResult = await client.query('SELECT id FROM hospitals WHERE hospital_code = $1', [hospitalCode]);
+
+    if (hospitalResult.rows.length === 0) {
+      throw new Error(`Hospital with code ${hospitalCode} not found`);
+    }
+
+    const hospitalId = hospitalResult.rows[0].id;
+    const timestamp = new Date(date + 'T' + new Date().toTimeString().split(' ')[0]);
+
+    // Insert patient reading
+    await client.query('INSERT INTO patient_readings (hospital_id, patient_count, recorded_at) VALUES ($1, $2, $3)', [
+      hospitalId,
+      patientCount,
+      timestamp
+    ]);
+
+    await client.query('COMMIT');
+    console.log(`✅ Saved real-time patient data: ${hospitalCode} = ${patientCount} patients`);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ Error saving real-time patient data:', error);
     throw error;
   } finally {
     client.release();

@@ -28,6 +28,16 @@ export const useDashboard = () => {
   // Database Integration
   const { loading: dbLoading, error: dbError, getHistoricalFromDatabase, getCurrentFromDatabase } = useDatabase();
 
+  // Real-time Patient Data Integration
+  const {
+    patientData,
+    isLoading: isLoadingPatients,
+    error: patientError,
+    getPatientCount,
+    startAutoRefresh: startPatientAutoRefresh,
+    stopAutoRefresh: stopPatientAutoRefresh
+  } = useRealTimePatients();
+
   const useMqttData = ref(true); // Toggle untuk menggunakan MQTT atau dummy data
 
   // Export and pause functionality
@@ -1179,14 +1189,20 @@ export const useDashboard = () => {
       // Update current values from MQTT (hospital-specific data)
       data.value.voltaseListrik.current = newData.electricity;
       data.value.debitAir.current = newData.water;
-      data.value.jumlahPasien.current = newData.pasien;
+
+      // Use real-time patient data if available, otherwise use MQTT pasien data
+      const realTimePatientCount = getPatientCount(currentHospital.value.id);
+      data.value.jumlahPasien.current =
+        realTimePatientCount !== null && realTimePatientCount !== undefined && realTimePatientCount > 0
+          ? realTimePatientCount
+          : newData.pasien;
 
       // Add to historical data for real-time chart
       const timestamp = newData.timestamp;
 
       data.value.voltaseListrik.historical.push({ timestamp, value: newData.electricity });
       data.value.debitAir.historical.push({ timestamp, value: newData.water });
-      data.value.jumlahPasien.historical.push({ timestamp, value: newData.pasien });
+      data.value.jumlahPasien.historical.push({ timestamp, value: data.value.jumlahPasien.current });
 
       // Keep only last 50 points for real-time chart performance
       if (data.value.voltaseListrik.historical.length > 50) {
@@ -1225,6 +1241,9 @@ export const useDashboard = () => {
     // Load hospitals from database first
     await loadHospitals();
 
+    // Start real-time patient data auto-refresh
+    startPatientAutoRefresh();
+
     if (isRealTimeEnabled.value && !useMqttData.value) {
       startRealTimeUpdates();
     }
@@ -1232,9 +1251,9 @@ export const useDashboard = () => {
     // Load initial data based on filter
     await loadDataByFilter();
   });
-
   onUnmounted(() => {
     stopRealTimeUpdates();
+    stopPatientAutoRefresh();
   });
 
   return {
@@ -1260,6 +1279,11 @@ export const useDashboard = () => {
     currentHospital,
     switchHospital,
     isLoadingHospitals,
+    // Real-time Patient Data
+    patientData,
+    isLoadingPatients,
+    patientError,
+    getPatientCount,
     // Export functionality
     exportToExcel,
     isDataPaused,
