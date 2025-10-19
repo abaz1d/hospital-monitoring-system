@@ -26,9 +26,9 @@ export default defineEventHandler(async (event) => {
     const endDate = targetDate;
 
     console.log(`📊 Fetching patient data for date: ${targetDate}`);
-
+    console.log(`API URL: ${import.meta.env.VITE_APP_API_RS}/${startDate}/${endDate}`);
     // Fetch data from external API
-    const apiUrl = `https://bendanpublic.pekalongankota.go.id/ipsrs/${startDate}/${endDate}`;
+    const apiUrl = `${import.meta.env.VITE_APP_API_RS}/${startDate}/${endDate}`;
     const response = await fetch(apiUrl);
 
     if (!response.ok) {

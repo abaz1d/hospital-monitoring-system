@@ -4,6 +4,7 @@ let pool: Pool | null = null;
 
 export function getDatabase() {
   if (!pool) {
+    console.log('Initializing database connection pool');
     pool = new Pool({
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432'),
