@@ -766,7 +766,15 @@ export const useDashboard = () => {
         // Update current values dari MQTT
         data.value.voltaseListrik.current = newMqttData.electricity;
         data.value.debitAir.current = newMqttData.water;
-        data.value.jumlahPasien.current = newMqttData.pasien;
+
+        // Use real-time patient data if available, otherwise use MQTT pasien data
+        const realTimePatientCount = getPatientCount(currentHospital.value.id);
+        const patientValue =
+          realTimePatientCount !== null && realTimePatientCount !== undefined && realTimePatientCount > 0
+            ? realTimePatientCount
+            : newMqttData.pasien;
+
+        data.value.jumlahPasien.current = patientValue;
 
         // Add to historical data
         const timestamp = newMqttData.timestamp;
@@ -780,7 +788,7 @@ export const useDashboard = () => {
         });
         data.value.jumlahPasien.historical.push({
           timestamp,
-          value: newMqttData.pasien
+          value: patientValue // Use real-time patient count in historical
         });
 
         // Keep only last 100 points for performance
@@ -1178,6 +1186,31 @@ export const useDashboard = () => {
 
   watch(currentHospital, async () => {
     console.log(`🏥 Hospital changed to: ${currentHospital.value.name}`);
+
+    // Update patient count immediately when switching hospital
+    if (isRealTimeMode.value) {
+      const realTimePatientCount = getPatientCount(currentHospital.value.id);
+      if (realTimePatientCount !== null && realTimePatientCount !== undefined && realTimePatientCount > 0) {
+        data.value.jumlahPasien.current = realTimePatientCount;
+
+        // Update historical data with new patient count
+        if (data.value.jumlahPasien.historical.length > 0) {
+          const timestamp = Date.now();
+          data.value.jumlahPasien.historical.push({
+            timestamp,
+            value: realTimePatientCount
+          });
+
+          // Keep only last 50 points
+          if (data.value.jumlahPasien.historical.length > 50) {
+            data.value.jumlahPasien.historical.shift();
+          }
+        }
+
+        console.log(`📊 Patient count updated on hospital switch: ${realTimePatientCount}`);
+      }
+    }
+
     if (!isRealTimeMode.value) {
       await loadDataByFilter();
     }
@@ -1235,6 +1268,30 @@ export const useDashboard = () => {
       }
     }
   });
+
+  // Watch patient data changes to update chart immediately
+  watch(
+    patientData,
+    (newPatientData) => {
+      if (isRealTimeMode.value && !isDataPaused.value && newPatientData.length > 0) {
+        const realTimePatientCount = getPatientCount(currentHospital.value.id);
+
+        if (realTimePatientCount !== null && realTimePatientCount !== undefined && realTimePatientCount > 0) {
+          // Update current patient count
+          data.value.jumlahPasien.current = realTimePatientCount;
+
+          // Also update the last point in historical data to reflect new count
+          if (data.value.jumlahPasien.historical.length > 0) {
+            const lastIndex = data.value.jumlahPasien.historical.length - 1;
+            data.value.jumlahPasien.historical[lastIndex].value = realTimePatientCount;
+          }
+
+          console.log(`📊 Patient data updated for ${currentHospital.value.name}: ${realTimePatientCount} patients`);
+        }
+      }
+    },
+    { deep: true }
+  );
 
   // Lifecycle
   onMounted(async () => {
