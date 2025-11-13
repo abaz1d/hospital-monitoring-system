@@ -7,10 +7,10 @@ export default defineNuxtConfig({
   nitro: {
     esbuild: {
       options: {
-        minifyIdentifiers: true,
-        minifySyntax: true,
-        minifyWhitespace: true,
-        drop: ['console']
+        // minifyIdentifiers: true,
+        // minifySyntax: true,
+        // minifyWhitespace: true,
+        // drop: ['console']
       }
     }
   },
@@ -19,7 +19,7 @@ export default defineNuxtConfig({
       minify: process.env.NODE_ENV === 'development' ? false : 'terser',
       terserOptions: {
         compress: {
-          drop_console: true
+          // drop_console: true
         }
       }
     }
