@@ -170,11 +170,26 @@ export const useMqtt = () => {
             const data = JSON.parse(message.toString()) as MqttMessage;
 
             // Validate the message structure
+            console.log(
+              '🔍 Validating hospital message data:',
+              typeof data.electricity,
+              typeof data.water,
+              typeof data.pasien
+            );
             if (
-              typeof data.electricity === 'number' &&
-              typeof data.water === 'number' &&
-              typeof data.pasien === 'number'
+              (typeof data.electricity === 'number' || data.electricity === null || data.electricity === '') &&
+              (typeof data.water === 'number' || data.water === null || data.water === '') &&
+              (typeof data.pasien === 'number' || data.pasien === null || data.pasien === '')
             ) {
+              // Normalize values: treat null or empty string as 0 using nullish coalescing
+              const elec = Number(data.electricity ?? 0);
+              const water = Number(data.water ?? 0);
+              const pasien = Number(data.pasien ?? 0);
+
+              // Apply normalized numbers back to data so following code can use them safely
+              data.electricity = elec;
+              data.water = water;
+              data.pasien = pasien;
               lastMessage.value = data;
               mqttData.value = {
                 electricity: data.electricity,
