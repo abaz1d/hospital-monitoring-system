@@ -1,5 +1,6 @@
 import mqtt, { type MqttClient } from 'mqtt';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useLocalStorage } from './useLocalStorage';
 
 interface MqttMessage {
   electricity: number;
@@ -37,6 +38,13 @@ export const useMqtt = () => {
   });
 
   const error = ref<string | null>(null);
+
+  // Local storage integration
+  const { storeData, getStoredDataCount, syncStoredDataToServer, startAutoSync, getLatestStoredData } =
+    useLocalStorage();
+
+  // Auto-sync cleanup function
+  let autoSyncCleanup: (() => void) | null = null;
 
   // Hospital list - will be loaded from database
   const hospitals = ref<Hospital[]>([]);
@@ -191,12 +199,26 @@ export const useMqtt = () => {
               data.water = water;
               data.pasien = pasien;
               lastMessage.value = data;
+
+              const timestamp = Date.now();
               mqttData.value = {
                 electricity: data.electricity,
                 water: data.water,
                 pasien: data.pasien,
-                timestamp: Date.now()
+                timestamp
               };
+
+              // Store to localStorage as backup
+              if (currentHospital.value?.id) {
+                storeData({
+                  hospitalCode: currentHospital.value.id,
+                  electricity: data.electricity,
+                  water: data.water,
+                  pasien: data.pasien,
+                  ph: phData.value.ph || undefined,
+                  timestamp
+                });
+              }
 
               console.log('✅ Hospital data updated:', mqttData.value);
             } else {
@@ -337,11 +359,26 @@ export const useMqtt = () => {
 
   // Lifecycle hooks
   onMounted(() => {
+    // Load hospitals first
+    loadHospitals();
+
+    // Connect to MQTT
     connect();
+
+    // Start auto-sync for localStorage backup (every 10 minutes)
+    autoSyncCleanup = startAutoSync(10);
+
+    console.log('🔄 Auto-sync started: localStorage → Database every 10 minutes');
   });
 
   onUnmounted(() => {
     disconnect();
+
+    // Cleanup auto-sync
+    if (autoSyncCleanup) {
+      autoSyncCleanup();
+      autoSyncCleanup = null;
+    }
   });
 
   return {
